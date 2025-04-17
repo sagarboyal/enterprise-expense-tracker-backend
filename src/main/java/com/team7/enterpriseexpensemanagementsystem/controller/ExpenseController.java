@@ -1,5 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
+import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
 import com.team7.enterpriseexpensemanagementsystem.payload.expense.ExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.payload.expense.ExpenseResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
@@ -35,13 +36,24 @@ public class ExpenseController {
     }
 
     @GetMapping
-    public ResponseEntity<ExpenseResponse> getAllExpenses() {
-        return ResponseEntity.ok(expenseService.getAllExpenses());
+    public ResponseEntity<ExpenseResponse> getAllExpenses(
+            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+    ) {
+        return ResponseEntity.ok(expenseService.getAllExpenses(pageNumber, pageSize, sortBy, sortOrder));
     }
 
     @GetMapping("/category/{categoryName}")
-    public ResponseEntity<ExpenseResponse> getExpensesByCategoryName(@PathVariable String categoryName) {
-        return ResponseEntity.ok(expenseService.getExpensesByCategoryName(categoryName));
+    public ResponseEntity<ExpenseResponse> getExpensesByCategoryName(
+            @PathVariable String categoryName,
+            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+            ) {
+        return ResponseEntity.ok(expenseService.getExpensesByCategoryName(categoryName, pageNumber, pageSize, sortBy, sortOrder));
     }
 
 

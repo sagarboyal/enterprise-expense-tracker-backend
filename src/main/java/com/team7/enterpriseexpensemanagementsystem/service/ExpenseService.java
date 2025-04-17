@@ -8,8 +8,9 @@ public interface ExpenseService {
     ExpenseDTO updateExpense(ExpenseDTO dto);
     void deleteExpense(Long id);
     ExpenseDTO getExpenseById(Long id);
-    ExpenseResponse getAllExpenses();
-    ExpenseResponse getExpensesByCategoryName(String categoryName);
+    ExpenseResponse getAllExpenses(Integer pageNumber,Integer pageSize, String sortBy, String sortOrder);
+    ExpenseResponse getExpensesByCategoryName(String categoryName,
+                                              Integer pageNumber,Integer pageSize, String sortBy, String sortOrder);
 
 }
 

@@ -9,10 +9,13 @@ import com.team7.enterpriseexpensemanagementsystem.repository.CategoryRepository
 import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ExpenseServiceImpl implements ExpenseService {
@@ -65,37 +68,55 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
-    public ExpenseResponse getAllExpenses() {
-        List<Expense> expenses = expenseRepository.findAll();
-        List<ExpenseDTO> response = expenses.stream()
-                .map(expense -> modelMapper.map(expense, ExpenseDTO.class))
-                .toList();
+    public ExpenseResponse getAllExpenses(Integer pageNumber,Integer pageSize, String sortBy, String sortOrder) {
+        Sort sort = sortOrder.equalsIgnoreCase("asc") ?
+                Sort.by(sortBy).ascending() :
+                Sort.by(sortBy).descending();
 
-        return ExpenseResponse.builder()
-                .expenses(response)
-                .build();
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
+        Page<Expense> expensePage = expenseRepository.findAll(pageable);
+        return getExpenseResponse(expensePage);
     }
 
     @Override
-    public ExpenseResponse getExpensesByCategoryName(String categoryName) {
+    public ExpenseResponse getExpensesByCategoryName(String categoryName, Integer pageNumber,Integer pageSize, String sortBy, String sortOrder) {
         Category category = categoryRepository.findByName(categoryName)
                 .orElseThrow(() -> new ResourceNotFoundException("Category with name: " +
                         categoryName + " not found"));
 
-        List<Expense> expenses = expenseRepository.findByCategory(category);
+        Sort sort = sortOrder.equalsIgnoreCase("asc") ?
+                Sort.by(sortBy).ascending() :
+                Sort.by(sortBy).descending();
 
-        List<ExpenseDTO> response =  expenses.stream()
-                .map(expense -> modelMapper.map(expense, ExpenseDTO.class))
-                .toList();
-
-        return ExpenseResponse.builder()
-                .expenses(response)
-                .build();
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
+        Page<Expense> expensePage = expenseRepository.findByCategory(category, pageable);
+        return getExpenseResponse(expensePage);
     }
 
 
     private Category getCategoryById(Long id) {
         return categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category with id: "+id+" not found"));
+    }
+
+    private ExpenseResponse getExpenseResponse(Page<Expense> expensePage) {
+        List<Expense> expenses = expensePage.getContent();
+
+        if (expenses.isEmpty()) {
+            throw new ResourceNotFoundException("No expenses found!");
+        }
+
+        List<ExpenseDTO> response = expenses.stream()
+                .map(expense -> modelMapper.map(expense, ExpenseDTO.class))
+                .toList();
+
+        return ExpenseResponse.builder()
+                .expenses(response)
+                .pageNumber(expensePage.getNumber())
+                .pageSize(expensePage.getSize())
+                .totalElements(expensePage.getTotalElements())
+                .totalPages(expensePage.getTotalPages())
+                .lastPage(expensePage.isLast())
+                .build();
     }
 }

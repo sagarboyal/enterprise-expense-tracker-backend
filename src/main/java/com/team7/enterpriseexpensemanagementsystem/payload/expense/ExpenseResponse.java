@@ -13,5 +13,10 @@ import java.util.List;
 @Builder
 public class ExpenseResponse {
     private List<ExpenseDTO> expenses;
+    private Integer pageNumber;
+    private Integer pageSize;
+    private Long totalElements;
+    private Integer totalPages;
+    private boolean lastPage;
 }
 
