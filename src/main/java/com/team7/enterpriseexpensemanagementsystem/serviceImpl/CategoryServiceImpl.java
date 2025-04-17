@@ -8,6 +8,10 @@ import com.team7.enterpriseexpensemanagementsystem.payload.category.CategoryResp
 import com.team7.enterpriseexpensemanagementsystem.repository.CategoryRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.CategoryService;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,15 +28,28 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryResponse findAll() {
-        List<Category> categories = categoryRepository.findAll();
-        if (categories.isEmpty()) throw new ResourceNotFoundException("Category not found");
-        List<CategoryDTO> response = categories.stream()
+    public CategoryResponse findAll(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        Sort sort = sortOrder.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+
+        Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sort);
+        Page<Category> categoryPage = categoryRepository.findAll(pageDetails);
+        List<Category> categoryList = categoryPage.getContent();
+
+        if (categoryList.isEmpty()) throw new ResourceNotFoundException("Category not found");
+        List<CategoryDTO> response = categoryList.stream()
                 .map(category -> modelMapper.map(category, CategoryDTO.class))
                 .toList();
 
         return CategoryResponse.builder()
                 .content(response)
+                .pageNumber(categoryPage.getNumber())
+                .pageSize(categoryPage.getSize())
+                .totalElements(categoryPage.getTotalElements())
+                .totalPages(categoryPage.getTotalPages())
+                .lastPage(categoryPage.isLast())
                 .build();
     }
 

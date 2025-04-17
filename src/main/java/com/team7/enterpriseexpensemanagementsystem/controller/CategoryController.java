@@ -1,5 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
+import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
 import com.team7.enterpriseexpensemanagementsystem.payload.category.CategoryDTO;
 import com.team7.enterpriseexpensemanagementsystem.payload.category.CategoryResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.CategoryService;
@@ -18,10 +19,14 @@ public class CategoryController {
     }
 
     @GetMapping("/public/categories")
-    public ResponseEntity<CategoryResponse> getAllCategoriesHandler() {
+    public ResponseEntity<CategoryResponse> getAllCategoriesHandler(
+            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_CATEGORY, required = false) String sortBy,
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder) {
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(categoryService.findAll());
+                .body(categoryService.findAll(pageNumber, pageSize, sortBy, sortOrder));
     }
 
     @GetMapping("/public/categories/name/{name}")
