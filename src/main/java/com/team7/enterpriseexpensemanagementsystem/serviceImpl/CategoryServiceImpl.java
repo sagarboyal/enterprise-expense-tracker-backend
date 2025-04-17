@@ -3,8 +3,11 @@ package com.team7.enterpriseexpensemanagementsystem.serviceImpl;
 import com.team7.enterpriseexpensemanagementsystem.entity.Category;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceAlreadyExistsException;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
+import com.team7.enterpriseexpensemanagementsystem.payload.category.CategoryDTO;
+import com.team7.enterpriseexpensemanagementsystem.payload.category.CategoryResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.CategoryRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.CategoryService;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,47 +16,64 @@ import java.util.List;
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ModelMapper modelMapper;
 
-    public CategoryServiceImpl(CategoryRepository categoryRepository) {
+    public CategoryServiceImpl(CategoryRepository categoryRepository, ModelMapper modelMapper) {
         this.categoryRepository = categoryRepository;
+        this.modelMapper = modelMapper;
     }
 
     @Override
-    public List<Category> findAll() {
+    public CategoryResponse findAll() {
         List<Category> categories = categoryRepository.findAll();
         if (categories.isEmpty()) throw new ResourceNotFoundException("Category not found");
-        return categories;
+        List<CategoryDTO> response = categories.stream()
+                .map(category -> modelMapper.map(category, CategoryDTO.class))
+                .toList();
+
+        return CategoryResponse.builder()
+                .content(response)
+                .build();
     }
 
     @Override
-    public Category findByName(String categoryName) {
-        return categoryRepository.findByName(categoryName)
+    public CategoryDTO findByName(String categoryName) {
+        Category category = categoryRepository.findByName(categoryName)
                 .orElseThrow(() -> new ResourceNotFoundException("Category with name: "+categoryName+" not found"));
+
+        return modelMapper.map(category, CategoryDTO.class);
     }
 
     @Override
-    public Category findById(Long id) {
-        return categoryRepository.findById(id)
+    public CategoryDTO findById(Long id) {
+        Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category with id: "+id+" not found"));
+
+        return modelMapper.map(category, CategoryDTO.class);
     }
 
     @Override
-    public Category addCategory(Category category) {
-        if (categoryRepository.findByName(category.getName()).isPresent())
-            throw new ResourceAlreadyExistsException("Category with name: "+category.getName()+" already exists");
-        return categoryRepository.save(category);
+    public CategoryDTO addCategory(CategoryDTO categoryDTO) {
+        if (categoryRepository.findByName(categoryDTO.getName()).isPresent())
+            throw new ResourceAlreadyExistsException("Category with name: "+categoryDTO.getName()+" already exists");
+        Category category = categoryRepository.save(modelMapper.map(categoryDTO, Category.class));
+
+        return modelMapper.map(category, CategoryDTO.class);
     }
 
     @Override
-    public Category updateCategory(Category category) {
-        Category data = findById(category.getId());
-        data.setName(category.getName() != null && !category.getName().isEmpty() ? category.getName() : data.getName());
-        return categoryRepository.save(data);
+    public CategoryDTO updateCategory(CategoryDTO categoryDTO) {
+        Category data = modelMapper.map(findById(categoryDTO.getId()), Category.class);
+        data.setName(
+                categoryDTO.getName() != null && !categoryDTO.getName().isEmpty()
+                        ? categoryDTO.getName() : data.getName());
+
+        return modelMapper.map(categoryRepository.save(data), CategoryDTO.class);
     }
 
     @Override
     public void deleteCategory(Long id) {
-        Category data = findById(id);
+        Category data = modelMapper.map(findById(id), Category.class);
         categoryRepository.delete(data);
     }
 }

@@ -1,12 +1,12 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
-import com.team7.enterpriseexpensemanagementsystem.entity.Category;
+import com.team7.enterpriseexpensemanagementsystem.payload.category.CategoryDTO;
+import com.team7.enterpriseexpensemanagementsystem.payload.category.CategoryResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.CategoryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -18,38 +18,38 @@ public class CategoryController {
     }
 
     @GetMapping("/public/categories")
-    public ResponseEntity<List<Category>> getAllCategoriesHandler() {
+    public ResponseEntity<CategoryResponse> getAllCategoriesHandler() {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(categoryService.findAll());
     }
 
     @GetMapping("/public/categories/name/{name}")
-    public ResponseEntity<Category> getCategoryByNameHandler(@PathVariable String name) {
+    public ResponseEntity<CategoryDTO> getCategoryByNameHandler(@PathVariable String name) {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(categoryService.findByName(name));
     }
 
     @GetMapping("/public/categories/id/{id}")
-    public ResponseEntity<Category> getAllCategoryByIdHandler(@PathVariable("id") Long id) {
+    public ResponseEntity<CategoryDTO> getAllCategoryByIdHandler(@PathVariable("id") Long id) {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(categoryService.findById(id));
     }
 
     @PostMapping("/public/categories")
-    public ResponseEntity<Category> saveCategoryHandler(@RequestBody Category category) {
+    public ResponseEntity<CategoryDTO> saveCategoryHandler(@RequestBody CategoryDTO categoryDTO) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(categoryService.addCategory(category));
+                .body(categoryService.addCategory(categoryDTO));
     }
 
     @PutMapping("/public/categories")
-    public ResponseEntity<Category> updateCategoryHandler(@RequestBody Category category) {
+    public ResponseEntity<CategoryDTO> updateCategoryHandler(@RequestBody CategoryDTO categoryDTO) {
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(categoryService.updateCategory(category));
+                .body(categoryService.updateCategory(categoryDTO));
     }
 
     @DeleteMapping("/admin/categories/{id}")

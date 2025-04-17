@@ -1,14 +1,14 @@
 package com.team7.enterpriseexpensemanagementsystem.service;
 
-import com.team7.enterpriseexpensemanagementsystem.entity.Category;
+import com.team7.enterpriseexpensemanagementsystem.payload.category.CategoryDTO;
+import com.team7.enterpriseexpensemanagementsystem.payload.category.CategoryResponse;
 
-import java.util.List;
 
 public interface CategoryService {
-    public List<Category> findAll();
-    public Category findByName(String categoryName);
-    public Category findById(Long id);
-    public Category addCategory(Category category);
-    public Category updateCategory(Category category);
+    public CategoryResponse findAll();
+    public CategoryDTO findByName(String categoryName);
+    public CategoryDTO findById(Long id);
+    public CategoryDTO addCategory(CategoryDTO categoryDTO);
+    public CategoryDTO updateCategory(CategoryDTO categoryDTO);
     public void deleteCategory(Long id);
 }
