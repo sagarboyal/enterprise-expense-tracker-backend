@@ -1,8 +1,8 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
 import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
-import com.team7.enterpriseexpensemanagementsystem.payload.expense.ExpenseDTO;
-import com.team7.enterpriseexpensemanagementsystem.payload.expense.ExpenseResponse;
+import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

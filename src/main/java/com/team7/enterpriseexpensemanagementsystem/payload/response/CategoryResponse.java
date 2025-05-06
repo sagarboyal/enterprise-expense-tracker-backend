@@ -1,5 +1,6 @@
-package com.team7.enterpriseexpensemanagementsystem.payload.category;
+package com.team7.enterpriseexpensemanagementsystem.payload.response;
 
+import com.team7.enterpriseexpensemanagementsystem.dto.CategoryDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -5,6 +5,7 @@ import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundExc
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,9 +15,11 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public User createUser(User user) {
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
@@ -27,7 +30,6 @@ public class UserServiceImpl implements UserService {
 
         oldUser.setEmail(user.getEmail() != null ? user.getEmail() : oldUser.getEmail());
         oldUser.setFullName(user.getFullName() != null ? user.getFullName() : oldUser.getFullName());
-        oldUser.setPassword(user.getPassword() != null ? user.getPassword() : oldUser.getPassword());
 
         return userRepository.save(oldUser);
     }
