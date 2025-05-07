@@ -1,4 +1,4 @@
-package com.team7.enterpriseexpensemanagementsystem.payload.expense;
+package com.team7.enterpriseexpensemanagementsystem.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

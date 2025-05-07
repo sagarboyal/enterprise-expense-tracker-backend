@@ -1,5 +1,6 @@
-package com.team7.enterpriseexpensemanagementsystem.payload.expense;
+package com.team7.enterpriseexpensemanagementsystem.payload.response;
 
+import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

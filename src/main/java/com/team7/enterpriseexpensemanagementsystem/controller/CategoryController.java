@@ -1,8 +1,8 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
 import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
-import com.team7.enterpriseexpensemanagementsystem.payload.category.CategoryDTO;
-import com.team7.enterpriseexpensemanagementsystem.payload.category.CategoryResponse;
+import com.team7.enterpriseexpensemanagementsystem.dto.CategoryDTO;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.CategoryResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.CategoryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

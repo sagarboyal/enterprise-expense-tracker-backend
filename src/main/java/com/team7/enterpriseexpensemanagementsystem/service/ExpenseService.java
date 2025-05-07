@@ -1,7 +1,7 @@
 package com.team7.enterpriseexpensemanagementsystem.service;
 
-import com.team7.enterpriseexpensemanagementsystem.payload.expense.ExpenseDTO;
-import com.team7.enterpriseexpensemanagementsystem.payload.expense.ExpenseResponse;
+import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
 
 public interface ExpenseService {
     ExpenseDTO addExpense(ExpenseDTO dto);
