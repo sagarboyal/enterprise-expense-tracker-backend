@@ -24,12 +24,12 @@ public class UserController {
     public ResponseEntity<User> getUserById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getUserById(id));
     }
-    @PostMapping
+    @PostMapping("/register")
     public ResponseEntity<User> createUser(@RequestBody User user) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(userService.createUser(user));
     }
-    @PutMapping
+    @PutMapping("/update")
     public ResponseEntity<User> updateUser(@RequestBody User user) {
         return ResponseEntity.ok(userService.updateUser(user));
     }
