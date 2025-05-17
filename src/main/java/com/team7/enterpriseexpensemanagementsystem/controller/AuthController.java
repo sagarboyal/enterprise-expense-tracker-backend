@@ -1,11 +1,15 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
+import com.team7.enterpriseexpensemanagementsystem.entity.Role;
+import com.team7.enterpriseexpensemanagementsystem.entity.Roles;
 import com.team7.enterpriseexpensemanagementsystem.entity.User;
+import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
 import com.team7.enterpriseexpensemanagementsystem.jwt.JwtUtils;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.SignInRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.SignUpRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.MessageResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.SignInResponse;
+import com.team7.enterpriseexpensemanagementsystem.repository.RoleRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 
 @RestController
@@ -34,6 +39,7 @@ public class AuthController {
     private final JwtUtils jwtUtils;
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/public/sign-in")
@@ -72,11 +78,13 @@ public class AuthController {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
         }
 
-        User user = new User(null,
-                signUpRequest.getFullName(),
-                signUpRequest.getEmail(),
-                passwordEncoder.encode(signUpRequest.getPassword()));
-
+        User user = User.builder()
+                .fullName(signUpRequest.getFullName())
+                .email(signUpRequest.getEmail())
+                .password(passwordEncoder.encode(signUpRequest.getPassword()))
+                .roles(Set.of(roleRepository.findByRoleName(Roles.ROLE_EMPLOYEE)
+                        .orElseThrow(() -> new ResourceNotFoundException("Error: Role does not exist!"))))
+                .build();
         userRepository.save(user);
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
