@@ -7,6 +7,8 @@ import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -18,8 +20,9 @@ public class ExpenseController {
     private final ExpenseService expenseService;
 
     @PostMapping
-    public ResponseEntity<ExpenseDTO> addExpense(@RequestBody ExpenseDTO expenseDTO) {
-        ExpenseDTO created = expenseService.addExpense(expenseDTO);
+    public ResponseEntity<ExpenseDTO> addExpense(@RequestBody ExpenseDTO expenseDTO,
+                                                 @AuthenticationPrincipal UserDetails userDetails) {
+        ExpenseDTO created = expenseService.addExpense(expenseDTO, userDetails);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 

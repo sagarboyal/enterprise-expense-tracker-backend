@@ -1,5 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.exceptionHandler;
 
+import com.team7.enterpriseexpensemanagementsystem.exception.ApiException;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceAlreadyExistsException;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,16 @@ public class GlobalExceptionHandler {
         error.put("error", "Not Found");
         error.put("message", ex.getMessage());
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<Map<String, Object>> handleApiException(ApiException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.UNAUTHORIZED.value());
+        error.put("error", "Unauthorized");
+        error.put("message", ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(Exception.class)
