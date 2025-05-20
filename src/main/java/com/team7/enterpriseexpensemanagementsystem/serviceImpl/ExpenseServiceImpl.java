@@ -59,7 +59,10 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
-    public ExpenseDTO updateExpense(ExpenseDTO dto) {
+    public ExpenseDTO updateExpense(ExpenseDTO dto, UserDetails userDetails) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new ApiException("User is not logged in. Please log in to continue."));
+
         Expense expense = modelMapper.map(getExpenseById(dto.getId()), Expense.class);
 
         expense.setTitle(dto.getTitle() != null ? dto.getTitle() : expense.getTitle());

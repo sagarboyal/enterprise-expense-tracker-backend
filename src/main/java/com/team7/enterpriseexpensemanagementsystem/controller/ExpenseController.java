@@ -4,6 +4,7 @@ import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
 import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,15 +21,16 @@ public class ExpenseController {
     private final ExpenseService expenseService;
 
     @PostMapping
-    public ResponseEntity<ExpenseDTO> addExpense(@RequestBody ExpenseDTO expenseDTO,
+    public ResponseEntity<ExpenseDTO> addExpense(@Valid @RequestBody ExpenseDTO expenseDTO,
                                                  @AuthenticationPrincipal UserDetails userDetails) {
         ExpenseDTO created = expenseService.addExpense(expenseDTO, userDetails);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
     @PutMapping
-    public ResponseEntity<ExpenseDTO> updateExpense(@RequestBody ExpenseDTO expenseDTO) {
-        ExpenseDTO updated = expenseService.updateExpense(expenseDTO);
+    public ResponseEntity<ExpenseDTO> updateExpense(@Valid @RequestBody ExpenseDTO expenseDTO,
+                                                    @AuthenticationPrincipal UserDetails userDetails) {
+        ExpenseDTO updated = expenseService.updateExpense(expenseDTO, userDetails);
         return ResponseEntity.ok(updated);
     }
 
