@@ -2,14 +2,14 @@ package com.team7.enterpriseexpensemanagementsystem.controller;
 
 import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
 import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpensePagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
+import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -19,18 +19,17 @@ import org.springframework.web.bind.annotation.*;
 public class ExpenseController {
 
     private final ExpenseService expenseService;
+    private final AuthUtil authUtil;
 
     @PostMapping
-    public ResponseEntity<ExpenseDTO> addExpense(@Valid @RequestBody ExpenseDTO expenseDTO,
-                                                 @AuthenticationPrincipal UserDetails userDetails) {
-        ExpenseDTO created = expenseService.addExpense(expenseDTO, userDetails);
+    public ResponseEntity<ExpenseResponse> addExpense(@Valid @RequestBody ExpenseDTO expenseDTO) {
+        ExpenseResponse created = expenseService.addExpense(expenseDTO, authUtil.loggedInEmail());
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
     @PutMapping
-    public ResponseEntity<ExpenseDTO> updateExpense(@Valid @RequestBody ExpenseDTO expenseDTO,
-                                                    @AuthenticationPrincipal UserDetails userDetails) {
-        ExpenseDTO updated = expenseService.updateExpense(expenseDTO, userDetails);
+    public ResponseEntity<ExpenseDTO> updateExpense(@Valid @RequestBody ExpenseDTO expenseDTO) {
+        ExpenseDTO updated = expenseService.updateExpense(expenseDTO);
         return ResponseEntity.ok(updated);
     }
 
@@ -41,7 +40,7 @@ public class ExpenseController {
     }
 
     @GetMapping
-    public ResponseEntity<ExpenseResponse> getAllExpenses(
+    public ResponseEntity<ExpensePagedResponse> getAllExpenses(
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
@@ -51,7 +50,7 @@ public class ExpenseController {
     }
 
     @GetMapping("/category/{categoryName}")
-    public ResponseEntity<ExpenseResponse> getExpensesByCategoryName(
+    public ResponseEntity<ExpensePagedResponse> getExpensesByCategoryName(
             @PathVariable String categoryName,
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,

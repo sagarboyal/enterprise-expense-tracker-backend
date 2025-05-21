@@ -1,23 +1,27 @@
 package com.team7.enterpriseexpensemanagementsystem.payload.response;
 
-import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
+import com.team7.enterpriseexpensemanagementsystem.entity.Approval;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
+import java.time.LocalDate;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class ExpenseResponse {
-    private List<ExpenseDTO> expenses;
-    private Integer pageNumber;
-    private Integer pageSize;
-    private Long totalElements;
-    private Integer totalPages;
-    private boolean lastPage;
+    private Long id;
+    private String title;
+    private Double amount;
+    private LocalDate expenseDate;
+    private String category;
+    private Approval status;
+    private String message;
 }
-

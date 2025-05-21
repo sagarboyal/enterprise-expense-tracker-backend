@@ -12,7 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class CategoryResponse {
+public class CategoryPagedResponse {
     private List<CategoryDTO> content;
     private Integer pageNumber;
     private Integer pageSize;

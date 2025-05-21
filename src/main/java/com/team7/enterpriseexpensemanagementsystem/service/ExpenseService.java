@@ -1,17 +1,17 @@
 package com.team7.enterpriseexpensemanagementsystem.service;
 
 import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpensePagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
-import org.springframework.security.core.userdetails.UserDetails;
 
 public interface ExpenseService {
-    ExpenseDTO addExpense(ExpenseDTO dto, UserDetails userDetails);
-    ExpenseDTO updateExpense(ExpenseDTO dto, UserDetails userDetails);
+    ExpenseResponse addExpense(ExpenseDTO dto, String email);
+    ExpenseDTO updateExpense(ExpenseDTO dto);
     void deleteExpense(Long id);
     ExpenseDTO getExpenseById(Long id);
-    ExpenseResponse getAllExpenses(Integer pageNumber,Integer pageSize, String sortBy, String sortOrder);
-    ExpenseResponse getExpensesByCategoryName(String categoryName,
-                                              Integer pageNumber,Integer pageSize, String sortBy, String sortOrder);
+    ExpensePagedResponse getAllExpenses(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
+    ExpensePagedResponse getExpensesByCategoryName(String categoryName,
+                                                   Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
 
 }
 

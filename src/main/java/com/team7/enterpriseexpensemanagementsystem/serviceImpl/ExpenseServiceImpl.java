@@ -1,11 +1,13 @@
 package com.team7.enterpriseexpensemanagementsystem.serviceImpl;
 
+import com.team7.enterpriseexpensemanagementsystem.entity.Approval;
 import com.team7.enterpriseexpensemanagementsystem.entity.Category;
 import com.team7.enterpriseexpensemanagementsystem.entity.Expense;
 import com.team7.enterpriseexpensemanagementsystem.entity.User;
 import com.team7.enterpriseexpensemanagementsystem.exception.ApiException;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
 import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpensePagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.CategoryRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
@@ -16,7 +18,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -39,37 +40,42 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
-    public ExpenseDTO addExpense(ExpenseDTO dto, UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername())
+    public ExpenseResponse addExpense(ExpenseDTO dto, String email) {
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException("User is not logged in. Please log in to continue."));
 
         Category category = getCategoryById(dto.getCategoryId());
         Expense expense = modelMapper.map(dto, Expense.class);
         expense.setCategory(category);
         expense.setUser(user);
+        expense.setStatus(Approval.PENDING);
 
         if(dto.getExpenseDate() == null) {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             LocalDate localDate = LocalDate.parse(LocalDate.now().format(formatter));
             expense.setExpenseDate(localDate);
         }
+        expense = expenseRepository.save(expense);
 
-        return modelMapper
-                .map(expenseRepository.save(expense), ExpenseDTO.class);
+        return ExpenseResponse.builder()
+                .id(expense.getId())
+                .title(expense.getTitle())
+                .amount(expense.getAmount())
+                .expenseDate(expense.getExpenseDate())
+                .category(category.getName())
+                .status(expense.getStatus())
+                .message(expense.getStatus().getMessage())
+                .build();
     }
 
     @Override
-    public ExpenseDTO updateExpense(ExpenseDTO dto, UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new ApiException("User is not logged in. Please log in to continue."));
-
+    public ExpenseDTO updateExpense(ExpenseDTO dto) {
         Expense expense = modelMapper.map(getExpenseById(dto.getId()), Expense.class);
 
         expense.setTitle(dto.getTitle() != null ? dto.getTitle() : expense.getTitle());
         expense.setExpenseDate(dto.getExpenseDate() != null ? dto.getExpenseDate() : expense.getExpenseDate());
         expense.setAmount(dto.getAmount() != null ? dto.getAmount() : expense.getAmount());
         expense.setCategory(dto.getCategoryId() != null ? getCategoryById(dto.getCategoryId()) : expense.getCategory());
-
         expense = expenseRepository.save(expense);
         return modelMapper.map(expense, ExpenseDTO.class);
     }
@@ -89,7 +95,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
-    public ExpenseResponse getAllExpenses(Integer pageNumber,Integer pageSize, String sortBy, String sortOrder) {
+    public ExpensePagedResponse getAllExpenses(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         Sort sort = sortOrder.equalsIgnoreCase("asc") ?
                 Sort.by(sortBy).ascending() :
                 Sort.by(sortBy).descending();
@@ -100,7 +106,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
-    public ExpenseResponse getExpensesByCategoryName(String categoryName, Integer pageNumber,Integer pageSize, String sortBy, String sortOrder) {
+    public ExpensePagedResponse getExpensesByCategoryName(String categoryName, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         Category category = categoryRepository.findByName(categoryName)
                 .orElseThrow(() -> new ResourceNotFoundException("Category with name: " +
                         categoryName + " not found"));
@@ -120,7 +126,7 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .orElseThrow(() -> new ResourceNotFoundException("Category with id: "+id+" not found"));
     }
 
-    private ExpenseResponse getExpenseResponse(Page<Expense> expensePage) {
+    private ExpensePagedResponse getExpenseResponse(Page<Expense> expensePage) {
         List<Expense> expenses = expensePage.getContent();
 
         if (expenses.isEmpty()) {
@@ -131,7 +137,7 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .map(expense -> modelMapper.map(expense, ExpenseDTO.class))
                 .toList();
 
-        return ExpenseResponse.builder()
+        return ExpensePagedResponse.builder()
                 .expenses(response)
                 .pageNumber(expensePage.getNumber())
                 .pageSize(expensePage.getSize())

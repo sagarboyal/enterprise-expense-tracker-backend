@@ -4,7 +4,7 @@ import com.team7.enterpriseexpensemanagementsystem.entity.Category;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceAlreadyExistsException;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
 import com.team7.enterpriseexpensemanagementsystem.dto.CategoryDTO;
-import com.team7.enterpriseexpensemanagementsystem.payload.response.CategoryResponse;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.CategoryPagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.CategoryRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.CategoryService;
 import org.modelmapper.ModelMapper;
@@ -28,7 +28,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryResponse findAll(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+    public CategoryPagedResponse findAll(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         Sort sort = sortOrder.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
@@ -43,7 +43,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .map(category -> modelMapper.map(category, CategoryDTO.class))
                 .toList();
 
-        return CategoryResponse.builder()
+        return CategoryPagedResponse.builder()
                 .content(response)
                 .pageNumber(categoryPage.getNumber())
                 .pageSize(categoryPage.getSize())

@@ -22,6 +22,11 @@ public class Expense {
     private Double amount;
     private LocalDate expenseDate;
 
+    @Enumerated(EnumType.STRING)
+    private Approval status;
+
+    private String message;
+
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
