@@ -46,15 +46,33 @@ public class AppConfig {
                     });
 
             Set<Role> adminRoles = Set.of(roleAdmin, roleManager, roleEmployee);
+            Set<Role> managerRoles = Set.of(roleManager, roleEmployee);
+            Set<Role> employeeRoles = Set.of(roleEmployee);
 
             if (!userRepository.existsByEmail("admin@gmail.com")) {
                 User admin = new User("admin", "admin@gmail.com", passwordEncoder.encode("admin"));
+                userRepository.save(admin);
+            }
+            if (!userRepository.existsByEmail("manager@gmail.com")) {
+                User admin = new User("manager", "manager@gmail.com", passwordEncoder.encode("manager"));
+                userRepository.save(admin);
+            }
+            if (!userRepository.existsByEmail("user@gmail.com")) {
+                User admin = new User("user", "user@gmail.com", passwordEncoder.encode("user"));
                 userRepository.save(admin);
             }
 
             userRepository.findByEmail("admin@gmail.com").ifPresent(admin -> {
                 admin.setRoles(adminRoles);
                 userRepository.save(admin);
+            });
+            userRepository.findByEmail("manager@gmail.com").ifPresent(manager -> {
+                manager.setRoles(managerRoles);
+                userRepository.save(manager);
+            });
+            userRepository.findByEmail("user@gmail.com").ifPresent(user -> {
+                user.setRoles(employeeRoles);
+                userRepository.save(user);
             });
         };
     }

@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class AuthUtil {
+public class AuthUtils {
     private final UserRepository userRepository;
 
     public String loggedInEmail() {

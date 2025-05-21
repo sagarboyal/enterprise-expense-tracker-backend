@@ -23,6 +23,7 @@ public class Expense {
     private LocalDate expenseDate;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 30)
     private Approval status;
 
     private String message;

@@ -1,18 +1,18 @@
 package com.team7.enterpriseexpensemanagementsystem.serviceImpl;
 
-import com.team7.enterpriseexpensemanagementsystem.entity.Approval;
-import com.team7.enterpriseexpensemanagementsystem.entity.Category;
-import com.team7.enterpriseexpensemanagementsystem.entity.Expense;
-import com.team7.enterpriseexpensemanagementsystem.entity.User;
+import com.team7.enterpriseexpensemanagementsystem.entity.*;
 import com.team7.enterpriseexpensemanagementsystem.exception.ApiException;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
 import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
+import com.team7.enterpriseexpensemanagementsystem.payload.request.ApprovalRequest;
+import com.team7.enterpriseexpensemanagementsystem.payload.request.ExpenseUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpensePagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.CategoryRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
+import com.team7.enterpriseexpensemanagementsystem.utils.UserUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -49,6 +49,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         expense.setCategory(category);
         expense.setUser(user);
         expense.setStatus(Approval.PENDING);
+        expense.setMessage(Approval.PENDING.getMessage());
 
         if(dto.getExpenseDate() == null) {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -64,34 +65,50 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .expenseDate(expense.getExpenseDate())
                 .category(category.getName())
                 .status(expense.getStatus())
-                .message(expense.getStatus().getMessage())
+                .message(expense.getMessage())
                 .build();
     }
 
     @Override
-    public ExpenseDTO updateExpense(ExpenseDTO dto) {
-        Expense expense = modelMapper.map(getExpenseById(dto.getId()), Expense.class);
+    public ExpenseResponse updateExpense(ExpenseUpdateRequest dto) {
+        Expense expense = getExpenseById(dto.getId());
+        Category category = dto.getCategoryId() != null ? getCategoryById(dto.getCategoryId()) : expense.getCategory();
 
         expense.setTitle(dto.getTitle() != null ? dto.getTitle() : expense.getTitle());
         expense.setExpenseDate(dto.getExpenseDate() != null ? dto.getExpenseDate() : expense.getExpenseDate());
         expense.setAmount(dto.getAmount() != null ? dto.getAmount() : expense.getAmount());
-        expense.setCategory(dto.getCategoryId() != null ? getCategoryById(dto.getCategoryId()) : expense.getCategory());
+        expense.setCategory(category);
         expense = expenseRepository.save(expense);
-        return modelMapper.map(expense, ExpenseDTO.class);
+
+        return ExpenseResponse.builder()
+                .id(expense.getId())
+                .title(expense.getTitle())
+                .amount(expense.getAmount())
+                .expenseDate(expense.getExpenseDate())
+                .category(category.getName())
+                .status(expense.getStatus())
+                .message(expense.getMessage())
+                .build();
     }
 
     @Override
     public void deleteExpense(Long id) {
-        ExpenseDTO expenseDTO = getExpenseById(id);
-        expenseRepository.delete(modelMapper.map(expenseDTO, Expense.class));
+        Expense expense = getExpenseById(id);
+        expenseRepository.delete(expense);
     }
 
     @Override
-    public ExpenseDTO getExpenseById(Long id) {
-        Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Category with id: "+id+" not found"));
-
-        return modelMapper.map(expense, ExpenseDTO.class);
+    public ExpenseResponse getExpenseByExpenseId(Long id) {
+        Expense expense = getExpenseById(id);
+        return ExpenseResponse.builder()
+                .id(expense.getId())
+                .title(expense.getTitle())
+                .amount(expense.getAmount())
+                .expenseDate(expense.getExpenseDate())
+                .category(expense.getCategory().getName())
+                .status(expense.getStatus())
+                .message(expense.getMessage())
+                .build();
     }
 
     @Override
@@ -120,11 +137,34 @@ public class ExpenseServiceImpl implements ExpenseService {
         return getExpenseResponse(expensePage);
     }
 
+    @Override
+    public ExpenseResponse updateExpenseStatus(Long id, ApprovalRequest approvalRequest, String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ApiException("User is not logged in. Please log in to continue."));
+        Expense expense = getExpenseById(id);
 
-    private Category getCategoryById(Long id) {
-        return categoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Category with id: "+id+" not found"));
+        Approval status = resolveApprovalStatus(user, approvalRequest.getDecision());
+        String message = approvalRequest.getMessage() != null
+                && !approvalRequest.getMessage().trim().isEmpty()
+                ? approvalRequest.getMessage() :
+                status.getMessage();
+
+
+        expense.setStatus(status);
+        expense.setMessage(message);
+
+        expense = expenseRepository.save(expense);
+        return ExpenseResponse.builder()
+                .id(expense.getId())
+                .title(expense.getTitle())
+                .amount(expense.getAmount())
+                .expenseDate(expense.getExpenseDate())
+                .category(expense.getCategory().getName())
+                .status(expense.getStatus())
+                .message(expense.getMessage())
+                .build();
     }
+
 
     private ExpensePagedResponse getExpenseResponse(Page<Expense> expensePage) {
         List<Expense> expenses = expensePage.getContent();
@@ -146,4 +186,27 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .lastPage(expensePage.isLast())
                 .build();
     }
+
+    private Category getCategoryById(Long id) {
+        return categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category with id: "+id+" not found"));
+    }
+
+    private Expense getExpenseById(Long id) {
+        return expenseRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Expense not found with id: " + id));
+    }
+
+    private Approval resolveApprovalStatus(User user, String decision) {
+        boolean isApproved = decision.equalsIgnoreCase("approve");
+
+        if (UserUtils.isAdmin(user)) {
+            return isApproved ? Approval.APPROVED_BY_ADMIN : Approval.REJECTED_BY_ADMIN;
+        } else if (UserUtils.isManager(user)) {
+            return isApproved ? Approval.APPROVED_BY_MANAGER : Approval.REJECTED_BY_MANAGER;
+        } else {
+            throw new ApiException("Only managers or admins can update expense status.");
+        }
+    }
+
 }
