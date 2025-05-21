@@ -12,17 +12,20 @@ import com.team7.enterpriseexpensemanagementsystem.repository.CategoryRepository
 import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
+import com.team7.enterpriseexpensemanagementsystem.specification.ExpenseSpecification;
 import com.team7.enterpriseexpensemanagementsystem.utils.UserUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ExpenseServiceImpl implements ExpenseService {
@@ -31,6 +34,13 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final CategoryRepository categoryRepository;
     private final ModelMapper modelMapper;
     private final UserRepository userRepository;
+    private static final Map<String, Approval> statusMap = Map.of(
+            "pending", Approval.PENDING,
+            "manager approve", Approval.APPROVED_BY_MANAGER,
+            "admin approve", Approval.APPROVED_BY_ADMIN,
+            "manager reject", Approval.REJECTED_BY_MANAGER,
+            "admin reject", Approval.REJECTED_BY_ADMIN
+    );
 
     public ExpenseServiceImpl(ExpenseRepository expenseRepository, CategoryRepository categoryRepository, ModelMapper modelMapper, UserRepository userRepository) {
         this.expenseRepository = expenseRepository;
@@ -112,32 +122,6 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
-    public ExpensePagedResponse getAllExpenses(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
-        Sort sort = sortOrder.equalsIgnoreCase("asc") ?
-                Sort.by(sortBy).ascending() :
-                Sort.by(sortBy).descending();
-
-        Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
-        Page<Expense> expensePage = expenseRepository.findAll(pageable);
-        return getExpenseResponse(expensePage);
-    }
-
-    @Override
-    public ExpensePagedResponse getExpensesByCategoryName(String categoryName, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
-        Category category = categoryRepository.findByName(categoryName)
-                .orElseThrow(() -> new ResourceNotFoundException("Category with name: " +
-                        categoryName + " not found"));
-
-        Sort sort = sortOrder.equalsIgnoreCase("asc") ?
-                Sort.by(sortBy).ascending() :
-                Sort.by(sortBy).descending();
-
-        Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
-        Page<Expense> expensePage = expenseRepository.findByCategory(category, pageable);
-        return getExpenseResponse(expensePage);
-    }
-
-    @Override
     public ExpenseResponse updateExpenseStatus(Long id, ApprovalRequest approvalRequest, String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException("User is not logged in. Please log in to continue."));
@@ -165,6 +149,27 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .build();
     }
 
+    @Override
+    public ExpensePagedResponse getFilteredExpenses(String categoryName, String status, LocalDate startDate, LocalDate endDate, Double minAmount, Double maxAmount, Long userId,
+                                                    Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        Specification<Expense> specs = Specification.where(ExpenseSpecification.hasStatus(covertStatus(status)))
+                .and(ExpenseSpecification.hasCategory(categoryName))
+                .and(ExpenseSpecification.expenseDateBetween(startDate, endDate))
+                .and(ExpenseSpecification.amountBetween(minAmount, maxAmount))
+                .and(ExpenseSpecification.user(userId));
+
+
+
+        Sort sort = sortOrder.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sort);
+        Page<Expense> expensePage = expenseRepository.findAll(specs, pageDetails);
+        List<Expense> expenseList = expensePage.getContent();
+        return getExpensePagedResponse(expensePage, expenseList);
+    }
+
 
     private ExpensePagedResponse getExpenseResponse(Page<Expense> expensePage) {
         List<Expense> expenses = expensePage.getContent();
@@ -173,8 +178,20 @@ public class ExpenseServiceImpl implements ExpenseService {
             throw new ResourceNotFoundException("No expenses found!");
         }
 
-        List<ExpenseDTO> response = expenses.stream()
-                .map(expense -> modelMapper.map(expense, ExpenseDTO.class))
+        return getExpensePagedResponse(expensePage, expenses);
+    }
+
+    private ExpensePagedResponse getExpensePagedResponse(Page<Expense> expensePage, List<Expense> expenses) {
+        List<ExpenseResponse> response = expenses.stream()
+                .map(expense -> ExpenseResponse.builder()
+                        .id(expense.getId())
+                        .title(expense.getTitle())
+                        .amount(expense.getAmount())
+                        .expenseDate(expense.getExpenseDate())
+                        .category(expense.getCategory().getName())
+                        .status(expense.getStatus())
+                        .message(expense.getMessage())
+                        .build())
                 .toList();
 
         return ExpensePagedResponse.builder()
@@ -185,6 +202,14 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .totalPages(expensePage.getTotalPages())
                 .lastPage(expensePage.isLast())
                 .build();
+    }
+
+    private Approval covertStatus(String status) {
+        if(status == null) return null;
+        if (!statusMap.containsKey(status.toLowerCase())) {
+            throw new ApiException("Invalid approval status: " + status);
+        }
+        return statusMap.get(status.toLowerCase());
     }
 
     private Category getCategoryById(Long id) {

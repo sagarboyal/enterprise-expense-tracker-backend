@@ -13,7 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class ExpensePagedResponse {
-    private List<ExpenseDTO> expenses;
+    private List<ExpenseResponse> expenses;
     private Integer pageNumber;
     private Integer pageSize;
     private Long totalElements;

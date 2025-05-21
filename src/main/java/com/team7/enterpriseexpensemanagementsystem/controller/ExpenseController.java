@@ -10,9 +10,12 @@ import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 
 @RestController
@@ -30,23 +33,20 @@ public class ExpenseController {
 
     @GetMapping
     public ResponseEntity<ExpensePagedResponse> getAllExpenses(
+            @RequestParam(name = "categoryName", required = false) String categoryName,
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(name = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(name = "minAmount", required = false) Double minAmount,
+            @RequestParam(name = "maxAmount", required = false) Double maxAmount,
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
             @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
     ) {
-        return ResponseEntity.ok(expenseService.getAllExpenses(pageNumber, pageSize, sortBy, sortOrder));
-    }
-
-    @GetMapping("/category/{categoryName}")
-    public ResponseEntity<ExpensePagedResponse> getExpensesByCategoryName(
-            @PathVariable String categoryName,
-            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
-            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
-            @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
-            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
-    ) {
-        return ResponseEntity.ok(expenseService.getExpensesByCategoryName(categoryName, pageNumber, pageSize, sortBy, sortOrder));
+        return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, status, startDate, endDate, minAmount, maxAmount,
+                authUtil.loggedInUser().getId(),
+                pageNumber, pageSize, sortBy, sortOrder));
     }
 
     @PostMapping
