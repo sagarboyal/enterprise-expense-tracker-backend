@@ -1,7 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
 import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
-import com.team7.enterpriseexpensemanagementsystem.entity.Approval;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpensePagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
 import lombok.RequiredArgsConstructor;

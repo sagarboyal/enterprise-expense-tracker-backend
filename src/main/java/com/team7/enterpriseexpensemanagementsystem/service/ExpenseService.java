@@ -1,7 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.service;
 
 import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
-import com.team7.enterpriseexpensemanagementsystem.entity.Approval;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ApprovalRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ExpenseUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpensePagedResponse;
