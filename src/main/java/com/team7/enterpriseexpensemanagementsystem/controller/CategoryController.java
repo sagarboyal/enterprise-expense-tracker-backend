@@ -2,7 +2,7 @@ package com.team7.enterpriseexpensemanagementsystem.controller;
 
 import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
 import com.team7.enterpriseexpensemanagementsystem.dto.CategoryDTO;
-import com.team7.enterpriseexpensemanagementsystem.payload.response.CategoryPagedResponse;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,7 +17,7 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @GetMapping("/public/categories")
-    public ResponseEntity<CategoryPagedResponse> getAllCategoriesHandler(
+    public ResponseEntity<PagedResponse<CategoryDTO>> getAllCategoriesHandler(
             @RequestParam(name = "name", required = false) String name,
             @RequestParam(name = "id", required = false) Long id,
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,

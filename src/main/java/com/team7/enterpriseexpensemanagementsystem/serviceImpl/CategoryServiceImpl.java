@@ -4,7 +4,7 @@ import com.team7.enterpriseexpensemanagementsystem.entity.Category;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceAlreadyExistsException;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
 import com.team7.enterpriseexpensemanagementsystem.dto.CategoryDTO;
-import com.team7.enterpriseexpensemanagementsystem.payload.response.CategoryPagedResponse;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.CategoryRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.CategoryService;
 import com.team7.enterpriseexpensemanagementsystem.specification.CategorySpecification;
@@ -30,7 +30,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryPagedResponse filterCategories(String name, Long id, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+    public PagedResponse<CategoryDTO> filterCategories(String name, Long id, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         Specification<Category> specs = Specification.where(CategorySpecification.hasName(name))
                 .and(CategorySpecification.hasId(id));
 
@@ -48,7 +48,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .map(category -> modelMapper.map(category, CategoryDTO.class))
                 .toList();
 
-        return CategoryPagedResponse.builder()
+        return PagedResponse.<CategoryDTO>builder()
                 .content(response)
                 .pageNumber(categoryPage.getNumber())
                 .pageSize(categoryPage.getSize())

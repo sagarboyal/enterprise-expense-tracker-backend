@@ -1,6 +1,5 @@
 package com.team7.enterpriseexpensemanagementsystem.payload.response;
 
-import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,8 +11,8 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class ExpensePagedResponse {
-    private List<ExpenseResponse> expenses;
+public class PagedResponse<T> {
+    private List<T> content;
     private Integer pageNumber;
     private Integer pageSize;
     private Long totalElements;

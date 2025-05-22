@@ -6,8 +6,8 @@ import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundExc
 import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ApprovalRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ExpenseUpdateRequest;
-import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpensePagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.CategoryRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
@@ -150,8 +150,8 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
-    public ExpensePagedResponse getFilteredExpenses(String categoryName, String status, LocalDate startDate, LocalDate endDate, Double minAmount, Double maxAmount, Long userId,
-                                                    Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+    public PagedResponse<ExpenseResponse> getFilteredExpenses(String categoryName, String status, LocalDate startDate, LocalDate endDate, Double minAmount, Double maxAmount, Long userId,
+                                             Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         Specification<Expense> specs = Specification.where(ExpenseSpecification.hasStatus(covertStatus(status)))
                 .and(ExpenseSpecification.hasCategory(categoryName))
                 .and(ExpenseSpecification.expenseDateBetween(startDate, endDate))
@@ -171,7 +171,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
 
-    private ExpensePagedResponse getExpenseResponse(Page<Expense> expensePage) {
+    private PagedResponse<ExpenseResponse> getExpenseResponse(Page<Expense> expensePage) {
         List<Expense> expenses = expensePage.getContent();
 
         if (expenses.isEmpty()) {
@@ -181,7 +181,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         return getExpensePagedResponse(expensePage, expenses);
     }
 
-    private ExpensePagedResponse getExpensePagedResponse(Page<Expense> expensePage, List<Expense> expenses) {
+    private PagedResponse<ExpenseResponse> getExpensePagedResponse(Page<Expense> expensePage, List<Expense> expenses) {
         List<ExpenseResponse> response = expenses.stream()
                 .map(expense -> ExpenseResponse.builder()
                         .id(expense.getId())
@@ -194,8 +194,8 @@ public class ExpenseServiceImpl implements ExpenseService {
                         .build())
                 .toList();
 
-        return ExpensePagedResponse.builder()
-                .expenses(response)
+        return PagedResponse.<ExpenseResponse>builder()
+                .content(response)
                 .pageNumber(expensePage.getNumber())
                 .pageSize(expensePage.getSize())
                 .totalElements(expensePage.getTotalElements())

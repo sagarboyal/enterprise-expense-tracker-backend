@@ -4,8 +4,8 @@ import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
 import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ApprovalRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ExpenseUpdateRequest;
-import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpensePagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
 import jakarta.validation.Valid;
@@ -33,7 +33,7 @@ public class ExpenseController {
     }
 
     @GetMapping
-    public ResponseEntity<ExpensePagedResponse> getAllExpenses(
+    public ResponseEntity<PagedResponse<ExpenseResponse>> getAllExpenses(
             @RequestParam(name = "categoryName", required = false) String categoryName,
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,

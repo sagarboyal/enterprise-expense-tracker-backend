@@ -1,7 +1,8 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
 import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
-import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpensePagedResponse;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -17,7 +18,7 @@ public class AdminController {
     private final ExpenseService expenseService;
 
     @GetMapping("/expenses")
-    public ResponseEntity<ExpensePagedResponse> getExpenses(
+    public ResponseEntity<PagedResponse<ExpenseResponse>> getExpenses(
             @RequestParam(name = "categoryName", required = false) String categoryName,
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -30,7 +31,7 @@ public class AdminController {
             @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES) String sortBy,
             @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR) String sortOrder
     ) {
-        ExpensePagedResponse response = expenseService.getFilteredExpenses(
+        PagedResponse<ExpenseResponse> response = expenseService.getFilteredExpenses(
                 categoryName, status, startDate, endDate, minAmount, maxAmount, userId,
                 pageNumber, pageSize, sortBy, sortOrder
         );
