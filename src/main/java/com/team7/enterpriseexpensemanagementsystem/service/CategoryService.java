@@ -5,8 +5,7 @@ import com.team7.enterpriseexpensemanagementsystem.payload.response.CategoryPage
 
 
 public interface CategoryService {
-    CategoryPagedResponse findAll(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
-    CategoryDTO findByName(String categoryName);
+    CategoryPagedResponse filterCategories(String name, Long id, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
     CategoryDTO findById(Long id);
     CategoryDTO addCategory(CategoryDTO categoryDTO);
     CategoryDTO updateCategory(CategoryDTO categoryDTO);

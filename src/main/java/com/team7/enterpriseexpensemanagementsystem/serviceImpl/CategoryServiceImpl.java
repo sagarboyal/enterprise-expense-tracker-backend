@@ -7,11 +7,13 @@ import com.team7.enterpriseexpensemanagementsystem.dto.CategoryDTO;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.CategoryPagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.CategoryRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.CategoryService;
+import com.team7.enterpriseexpensemanagementsystem.specification.CategorySpecification;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,14 +30,17 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryPagedResponse findAll(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+    public CategoryPagedResponse filterCategories(String name, Long id, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        Specification<Category> specs = Specification.where(CategorySpecification.hasName(name))
+                .and(CategorySpecification.hasId(id));
+
         Sort sort = sortOrder.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
 
 
         Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sort);
-        Page<Category> categoryPage = categoryRepository.findAll(pageDetails);
+        Page<Category> categoryPage = categoryRepository.findAll(specs, pageDetails);
         List<Category> categoryList = categoryPage.getContent();
 
         if (categoryList.isEmpty()) throw new ResourceNotFoundException("Category not found");
@@ -53,13 +58,6 @@ public class CategoryServiceImpl implements CategoryService {
                 .build();
     }
 
-    @Override
-    public CategoryDTO findByName(String categoryName) {
-        Category category = categoryRepository.findByName(categoryName)
-                .orElseThrow(() -> new ResourceNotFoundException("Category with name: "+categoryName+" not found"));
-
-        return modelMapper.map(category, CategoryDTO.class);
-    }
 
     @Override
     public CategoryDTO findById(Long id) {
@@ -71,7 +69,9 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public CategoryDTO addCategory(CategoryDTO categoryDTO) {
-        if (categoryRepository.findByName(categoryDTO.getName()).isPresent())
+        Specification<Category> spec = Specification.where(CategorySpecification.hasName(categoryDTO.getName()));
+        boolean exists = categoryRepository.findOne(spec).isPresent();
+        if (exists)
             throw new ResourceAlreadyExistsException("Category with name: "+categoryDTO.getName()+" already exists");
         Category category = categoryRepository.save(modelMapper.map(categoryDTO, Category.class));
 
