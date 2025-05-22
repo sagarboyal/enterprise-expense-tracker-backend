@@ -1,12 +1,15 @@
 package com.team7.enterpriseexpensemanagementsystem.security;
 
 import com.team7.enterpriseexpensemanagementsystem.jwt.AuthEntryPointJwt;
+import com.team7.enterpriseexpensemanagementsystem.jwt.JwtAccessDeniedHandler;
 import com.team7.enterpriseexpensemanagementsystem.jwt.JwtFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -17,11 +20,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
+@EnableMethodSecurity(securedEnabled = true, jsr250Enabled = true)
 public class SecurityConfig {
-    @Autowired
-    private JwtFilter jwtFilter;
-    @Autowired
-    private AuthEntryPointJwt unauthorizedHandler;
+    private final JwtFilter jwtFilter;
+    private final AuthEntryPointJwt unauthorizedHandler;
+    private final JwtAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     SecurityFilterChain authenticationFilterChain(HttpSecurity http) throws Exception {
@@ -30,9 +34,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
                                 .requestMatchers("api/auth/**").permitAll()
+                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                                 .anyRequest().authenticated())
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(unauthorizedHandler)
+                                .accessDeniedHandler(accessDeniedHandler)
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
