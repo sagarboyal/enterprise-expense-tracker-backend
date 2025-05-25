@@ -1,14 +1,21 @@
 package com.team7.enterpriseexpensemanagementsystem.serviceImpl;
 
+import com.team7.enterpriseexpensemanagementsystem.entity.Role;
+import com.team7.enterpriseexpensemanagementsystem.entity.Roles;
 import com.team7.enterpriseexpensemanagementsystem.entity.User;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
+import com.team7.enterpriseexpensemanagementsystem.payload.request.UserRequest;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.UserResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -16,11 +23,21 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ModelMapper modelMapper;
 
     @Override
-    public User createUser(User user) {
+    public UserResponse createUser(UserRequest request) {
+        User user = modelMapper.map(request, User.class);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userRepository.save(user);
+        user.setRoles(Set.of(new Role(Roles.ROLE_EMPLOYEE)));
+        user = userRepository.save(user);
+        return UserResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .role(Roles.ROLE_EMPLOYEE.toString())
+                .totalExpenses(BigDecimal.valueOf(0.0))
+                .build();
     }
 
     @Override

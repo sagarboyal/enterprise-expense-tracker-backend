@@ -1,6 +1,8 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
 import com.team7.enterpriseexpensemanagementsystem.entity.User;
+import com.team7.enterpriseexpensemanagementsystem.payload.request.UserRequest;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.UserResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,9 +27,9 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserById(id));
     }
     @PostMapping("/register")
-    public ResponseEntity<User> createUser(@RequestBody User user) {
+    public ResponseEntity<UserResponse> createUser(@RequestBody UserRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(userService.createUser(user));
+                .body(userService.createUser(request));
     }
     @PutMapping("/update")
     public ResponseEntity<User> updateUser(@RequestBody User user) {
