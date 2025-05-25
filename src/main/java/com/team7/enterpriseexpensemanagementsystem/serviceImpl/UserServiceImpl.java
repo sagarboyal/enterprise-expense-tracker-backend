@@ -3,9 +3,12 @@ package com.team7.enterpriseexpensemanagementsystem.serviceImpl;
 import com.team7.enterpriseexpensemanagementsystem.entity.Role;
 import com.team7.enterpriseexpensemanagementsystem.entity.Roles;
 import com.team7.enterpriseexpensemanagementsystem.entity.User;
+import com.team7.enterpriseexpensemanagementsystem.exception.ApiException;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.UserRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.UserResponse;
+import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
+import com.team7.enterpriseexpensemanagementsystem.repository.RoleRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -24,12 +27,17 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final ModelMapper modelMapper;
+    private final RoleRepository roleRepository;
+    private final ExpenseRepository expenseRepository;
 
     @Override
     public UserResponse createUser(UserRequest request) {
+        Role defaultRole = roleRepository.findByRoleName(Roles.ROLE_EMPLOYEE)
+                .orElseThrow(() -> new ApiException("Invalid Role"));
+
         User user = modelMapper.map(request, User.class);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRoles(Set.of(new Role(Roles.ROLE_EMPLOYEE)));
+        user.setRoles(Set.of(defaultRole));
         user = userRepository.save(user);
         return UserResponse.builder()
                 .id(user.getId())
@@ -59,7 +67,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User deleteUser(Long id) {
-        User data = getUserById(id);
+        User data = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User Not Found with id: " + id));
         userRepository.delete(data);
         return data;
     }
@@ -70,8 +79,27 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getUserById(Long id) {
-        return userRepository.findById(id)
+    public UserResponse getUserById(Long id) {
+        User user =  userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User Not Found with id: " + id));
+
+        StringBuilder sb = new StringBuilder();
+        for (Role role : user.getRoles()) {
+            sb.append(role.getRoleName()).append(", ");
+        }
+        if (!sb.isEmpty()) {
+            sb.setLength(sb.length() - 2);
+        }
+        String rolesString = sb.toString();
+
+        BigDecimal totalExpenses = expenseRepository.getTotalExpensesByUserId(user.getId());
+
+        return UserResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .role(rolesString)
+                .totalExpenses(totalExpenses == null ? BigDecimal.ZERO : totalExpenses)
+                .build();
     }
 }
