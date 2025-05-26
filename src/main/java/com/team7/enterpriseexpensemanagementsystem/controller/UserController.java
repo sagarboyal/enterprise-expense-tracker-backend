@@ -1,9 +1,11 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
+import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
 import com.team7.enterpriseexpensemanagementsystem.entity.User;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.RoleUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.UserRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.UserUpdateRequest;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.UserResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.UserService;
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
@@ -24,9 +26,19 @@ public class UserController {
     private final AuthUtils authUtils;
 
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
-        List<User> users = userService.getAllUsers();
-        return ResponseEntity.ok(users);
+    public ResponseEntity<PagedResponse<UserResponse>> getAllUsers(
+            @RequestParam(name = "fullName", required = false) String name,
+            @RequestParam(name = "email", required = false) String email,
+            @RequestParam(name="role", required = false) String role,
+            @RequestParam(name = "minAmount", required = false) Double minAmount,
+            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+    ) {
+        PagedResponse<UserResponse> response = userService.getAllUsers(name, email, role, minAmount,
+                        pageNumber, pageSize, sortBy, sortOrder);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/profile")
@@ -57,9 +69,12 @@ public class UserController {
                                                         @RequestBody RoleUpdateRequest request) {
         return ResponseEntity.ok(userService.updateRoles(id, request));
     }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<User> deleteUser(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.deleteUser(id));
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+        return ResponseEntity.ok("User deleted successfully");
     }
 
 }

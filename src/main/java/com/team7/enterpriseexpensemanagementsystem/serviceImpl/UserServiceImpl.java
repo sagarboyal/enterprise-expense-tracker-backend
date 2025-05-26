@@ -8,18 +8,26 @@ import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundExc
 import com.team7.enterpriseexpensemanagementsystem.payload.request.RoleUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.UserRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.UserUpdateRequest;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.UserResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.RoleRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.UserService;
+import com.team7.enterpriseexpensemanagementsystem.specification.UserSpecification;
 import com.team7.enterpriseexpensemanagementsystem.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -75,22 +83,38 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getUserByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User Not Found with email: " + email));
-    }
-
-    @Override
-    public User deleteUser(Long id) {
+    public void deleteUser(Long id) {
         User data = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User Not Found with id: " + id));
         userRepository.delete(data);
-        return data;
     }
 
     @Override
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    public PagedResponse<UserResponse> getAllUsers(String name, String email, String role, Double minAmount, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        Specification<User> specs = Specification.where(UserSpecification.hasName(name))
+                .and(UserSpecification.hasEmail(email))
+                .and(UserSpecification.hasRole(role))
+                .and(UserSpecification.hasMinTotalExpense(minAmount));
+
+        Sort sort = sortOrder.equalsIgnoreCase("asc") ?
+                Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+
+        Pageable page = PageRequest.of(pageNumber, pageSize, sort);
+        Page<User> pageResponse = userRepository.findAll(specs, page);
+        List<User> users = pageResponse.getContent();
+
+        List<UserResponse> userResponses = users.stream().map(
+                user -> getUserById(user.getId())
+        ).toList();
+
+        return PagedResponse.<UserResponse>builder()
+                .content(userResponses)
+                .pageNumber(pageResponse.getNumber())
+                .pageSize(pageResponse.getSize())
+                .totalElements(pageResponse.getTotalElements())
+                .totalPages(pageResponse.getTotalPages())
+                .lastPage(pageResponse.isLast())
+                .build();
     }
 
     @Override
@@ -176,5 +200,4 @@ public class UserServiceImpl implements UserService {
         user = userRepository.save(user);
         return getUserById(user.getId());
     }
-
 }
