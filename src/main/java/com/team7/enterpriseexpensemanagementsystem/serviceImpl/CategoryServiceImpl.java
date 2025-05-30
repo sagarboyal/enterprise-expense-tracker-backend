@@ -1,13 +1,17 @@
 package com.team7.enterpriseexpensemanagementsystem.serviceImpl;
 
+import com.team7.enterpriseexpensemanagementsystem.entity.AuditLog;
 import com.team7.enterpriseexpensemanagementsystem.entity.Category;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceAlreadyExistsException;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
 import com.team7.enterpriseexpensemanagementsystem.dto.CategoryDTO;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.CategoryRepository;
+import com.team7.enterpriseexpensemanagementsystem.service.AuditLogService;
 import com.team7.enterpriseexpensemanagementsystem.service.CategoryService;
 import com.team7.enterpriseexpensemanagementsystem.specification.CategorySpecification;
+import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
+import com.team7.enterpriseexpensemanagementsystem.utils.ObjectMapperUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,10 +27,16 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final ModelMapper modelMapper;
+    private final AuditLogService auditLogService;
+    private final AuthUtils authUtils;
+    private final ObjectMapperUtils mapperUtils;
 
-    public CategoryServiceImpl(CategoryRepository categoryRepository, ModelMapper modelMapper) {
+    public CategoryServiceImpl(CategoryRepository categoryRepository, ModelMapper modelMapper, AuditLogService auditLogService, AuthUtils authUtils, ObjectMapperUtils mapperUtils) {
         this.categoryRepository = categoryRepository;
         this.modelMapper = modelMapper;
+        this.auditLogService = auditLogService;
+        this.authUtils = authUtils;
+        this.mapperUtils = mapperUtils;
     }
 
     @Override
@@ -74,23 +84,50 @@ public class CategoryServiceImpl implements CategoryService {
         if (exists)
             throw new ResourceAlreadyExistsException("Category with name: "+categoryDTO.getName()+" already exists");
         Category category = categoryRepository.save(modelMapper.map(categoryDTO, Category.class));
-
+        auditLogService.log(AuditLog.builder()
+                        .entityName("category")
+                        .entityId(category.getId())
+                        .action("CREATE")
+                        .performedBy(authUtils.loggedInEmail())
+                        .oldValue("")
+                        .newValue(mapperUtils.convertToJson(category))
+                        .build());
         return modelMapper.map(category, CategoryDTO.class);
     }
 
     @Override
     public CategoryDTO updateCategory(CategoryDTO categoryDTO) {
         Category data = modelMapper.map(findById(categoryDTO.getId()), Category.class);
+
+        AuditLog auditLog = AuditLog.builder()
+                .entityName("category")
+                .entityId(data.getId())
+                .action("UPDATE")
+                .performedBy(authUtils.loggedInEmail())
+                .oldValue(mapperUtils.convertToJson(data))
+                .build();
+
         data.setName(
                 categoryDTO.getName() != null && !categoryDTO.getName().isEmpty()
                         ? categoryDTO.getName() : data.getName());
+        data = categoryRepository.save(data);
 
-        return modelMapper.map(categoryRepository.save(data), CategoryDTO.class);
+        auditLog.setNewValue(mapperUtils.convertToJson(data));
+        auditLogService.log(auditLog);
+
+        return modelMapper.map(data, CategoryDTO.class);
     }
 
     @Override
     public void deleteCategory(Long id) {
         Category data = modelMapper.map(findById(id), Category.class);
         categoryRepository.delete(data);
+        auditLogService.log(AuditLog.builder()
+                .entityName("category")
+                .entityId(data.getId())
+                .action("DELETE")
+                .performedBy(authUtils.loggedInEmail())
+                .oldValue(mapperUtils.convertToJson(data))
+                .build());
     }
 }

@@ -1,8 +1,10 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
 import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
+import com.team7.enterpriseexpensemanagementsystem.entity.AuditLog;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
+import com.team7.enterpriseexpensemanagementsystem.service.AuditLogService;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -16,6 +18,7 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class AdminController {
     private final ExpenseService expenseService;
+    private final AuditLogService auditLogService;
 
     @GetMapping("/list")
     public ResponseEntity<PagedResponse<ExpenseResponse>> getAllExpenses(
@@ -88,5 +91,10 @@ public class AdminController {
         return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, status, startDate, endDate, minAmount, maxAmount,
                 userId,
                 pageNumber, pageSize, sortBy, sortOrder));
+    }
+
+    @GetMapping("/audit-log")
+    public ResponseEntity<PagedResponse<AuditLog>> getAuditLogs(){
+        return ResponseEntity.ok(auditLogService.findAll());
     }
 }
