@@ -1,6 +1,5 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
-import com.team7.enterpriseexpensemanagementsystem.entity.Role;
 import com.team7.enterpriseexpensemanagementsystem.entity.Roles;
 import com.team7.enterpriseexpensemanagementsystem.entity.User;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
