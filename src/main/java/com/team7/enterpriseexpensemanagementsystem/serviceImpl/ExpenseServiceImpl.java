@@ -89,7 +89,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         auditLogService.log(AuditLog.builder()
                 .entityName("expense")
                 .entityId(expense.getId())
-                .action("CREATE")
+                .action("CREATED")
                 .performedBy(authUtils.loggedInEmail())
                 .oldValue("")
                 .newValue(mapperUtils.convertToJson(response))
@@ -105,7 +105,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         AuditLog auditLog = AuditLog.builder()
                 .entityName("expense")
                 .entityId(expense.getId())
-                .action("UPDATE")
+                .action("UPDATED")
                 .performedBy(authUtils.loggedInEmail())
                 .oldValue(mapperUtils.convertToJson(ExpenseResponse.builder()
                         .id(expense.getId())
@@ -147,7 +147,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         auditLogService.log(AuditLog.builder()
                 .entityName("expense")
                 .entityId(expense.getId())
-                .action("CREATE")
+                .action("DELETED")
                 .performedBy(authUtils.loggedInEmail())
                 .oldValue("")
                 .newValue(mapperUtils.convertToJson(ExpenseResponse.builder()
@@ -184,7 +184,6 @@ public class ExpenseServiceImpl implements ExpenseService {
         AuditLog auditLog = AuditLog.builder()
                 .entityName("expense")
                 .entityId(expense.getId())
-                .action("APPROVAL")
                 .performedBy(authUtils.loggedInEmail())
                 .oldValue(mapperUtils.convertToJson(ExpenseResponse.builder()
                         .id(expense.getId())
@@ -218,6 +217,8 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .status(expense.getStatus())
                 .message(expense.getMessage())
                 .build();
+        auditLog.setAction(approvalRequest.getDecision().equalsIgnoreCase("approve")
+                ? "APPROVED" : "REJECTED");
         auditLog.setNewValue(mapperUtils.convertToJson(response));
         auditLogService.log(auditLog);
         return response;

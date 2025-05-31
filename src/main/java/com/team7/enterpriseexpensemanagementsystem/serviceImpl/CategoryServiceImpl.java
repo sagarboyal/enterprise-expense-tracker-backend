@@ -87,7 +87,7 @@ public class CategoryServiceImpl implements CategoryService {
         auditLogService.log(AuditLog.builder()
                         .entityName("category")
                         .entityId(category.getId())
-                        .action("CREATE")
+                        .action("CREATED")
                         .performedBy(authUtils.loggedInEmail())
                         .oldValue("")
                         .newValue(mapperUtils.convertToJson(category))
@@ -102,7 +102,7 @@ public class CategoryServiceImpl implements CategoryService {
         AuditLog auditLog = AuditLog.builder()
                 .entityName("category")
                 .entityId(data.getId())
-                .action("UPDATE")
+                .action("UPDATED")
                 .performedBy(authUtils.loggedInEmail())
                 .oldValue(mapperUtils.convertToJson(data))
                 .build();
@@ -125,7 +125,7 @@ public class CategoryServiceImpl implements CategoryService {
         auditLogService.log(AuditLog.builder()
                 .entityName("category")
                 .entityId(data.getId())
-                .action("DELETE")
+                .action("DELETED")
                 .performedBy(authUtils.loggedInEmail())
                 .oldValue(mapperUtils.convertToJson(data))
                 .build());

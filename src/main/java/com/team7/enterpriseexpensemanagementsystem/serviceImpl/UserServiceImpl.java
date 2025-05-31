@@ -1,5 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.serviceImpl;
 
+import com.team7.enterpriseexpensemanagementsystem.entity.AuditLog;
 import com.team7.enterpriseexpensemanagementsystem.entity.Role;
 import com.team7.enterpriseexpensemanagementsystem.entity.Roles;
 import com.team7.enterpriseexpensemanagementsystem.entity.User;
@@ -8,13 +9,17 @@ import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundExc
 import com.team7.enterpriseexpensemanagementsystem.payload.request.RoleUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.UserRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.UserUpdateRequest;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.UserResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.RoleRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
+import com.team7.enterpriseexpensemanagementsystem.service.AuditLogService;
 import com.team7.enterpriseexpensemanagementsystem.service.UserService;
 import com.team7.enterpriseexpensemanagementsystem.specification.UserSpecification;
+import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
+import com.team7.enterpriseexpensemanagementsystem.utils.ObjectMapperUtils;
 import com.team7.enterpriseexpensemanagementsystem.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -27,7 +32,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -40,6 +44,9 @@ public class UserServiceImpl implements UserService {
     private final ModelMapper modelMapper;
     private final RoleRepository roleRepository;
     private final ExpenseRepository expenseRepository;
+    private final AuditLogService auditLogService;
+    private final AuthUtils authUtils;
+    private final ObjectMapperUtils mapperUtils;
 
     @Override
     public UserResponse createUser(UserRequest request) {
@@ -50,19 +57,40 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setRoles(Set.of(defaultRole));
         user = userRepository.save(user);
-        return UserResponse.builder()
+
+        UserResponse response = UserResponse.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
                 .role(Roles.ROLE_EMPLOYEE.toString())
                 .totalExpenses(BigDecimal.valueOf(0.0))
                 .build();
+
+        auditLogService.log(AuditLog.builder()
+                .entityName("user")
+                .entityId(user.getId())
+                .action("CREATED")
+                .performedBy(authUtils.loggedInEmail())
+                .oldValue("")
+                .newValue(mapperUtils.convertToJson(response))
+                .build());
+
+        return response;
     }
 
     @Override
     public UserResponse updateUser(UserUpdateRequest request) {
         User oldUser = userRepository.findById(request.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User Not Found with id: " + request.getId()));
+
+        AuditLog auditLog = AuditLog.builder()
+                .entityName("user")
+                .entityId(oldUser.getId())
+                .action("UPDATED")
+                .performedBy(authUtils.loggedInEmail())
+                .oldValue(mapperUtils.convertToJson(getUserById(oldUser.getId())))
+                .build();
+
         String password = request.getPassword() != null && !request.getPassword().isEmpty() ? request.getPassword() : null;
         String email = request.getEmail() != null &&
                 !request.getEmail().isEmpty() &&
@@ -79,6 +107,9 @@ public class UserServiceImpl implements UserService {
             oldUser.setPassword(passwordEncoder.encode(password));
 
         oldUser = userRepository.save(oldUser);
+
+        auditLog.setNewValue(mapperUtils.convertToJson(getUserById(oldUser.getId())));
+        auditLogService.log(auditLog);
         return getUserById(oldUser.getId());
     }
 
@@ -86,7 +117,15 @@ public class UserServiceImpl implements UserService {
     public void deleteUser(Long id) {
         User data = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User Not Found with id: " + id));
-        userRepository.delete(data);
+
+        auditLogService.log(AuditLog.builder()
+                .entityName("user")
+                .entityId(data.getId())
+                .action("DELETED")
+                .performedBy(authUtils.loggedInEmail())
+                .oldValue("")
+                .newValue(mapperUtils.convertToJson(getUserById(data.getId())))
+                .build());
     }
 
     @Override
@@ -147,6 +186,13 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User Not Found with id: " + id));
 
+        AuditLog auditLog = AuditLog.builder()
+                .entityName("user")
+                .entityId(user.getId())
+                .performedBy(authUtils.loggedInEmail())
+                .oldValue(mapperUtils.convertToJson(getUserById(user.getId())))
+                .build();
+
         Role managerRole = roleRepository.findByRoleName(Roles.ROLE_MANAGER)
                 .orElseThrow(() -> new ApiException("Manager Role Not Found"));
         Role adminRole = roleRepository.findByRoleName(Roles.ROLE_ADMIN)
@@ -198,6 +244,9 @@ public class UserServiceImpl implements UserService {
         }
 
         user = userRepository.save(user);
+        auditLog.setAction(action.equalsIgnoreCase("promote") ? "PROMOTED" : "DEMOTED");
+        auditLog.setNewValue(mapperUtils.convertToJson(getUserById(user.getId())));
+        auditLogService.log(auditLog);
         return getUserById(user.getId());
     }
 }
