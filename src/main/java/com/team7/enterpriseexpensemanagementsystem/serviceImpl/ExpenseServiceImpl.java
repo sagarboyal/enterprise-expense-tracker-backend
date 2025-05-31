@@ -11,8 +11,11 @@ import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedRespons
 import com.team7.enterpriseexpensemanagementsystem.repository.CategoryRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
+import com.team7.enterpriseexpensemanagementsystem.service.AuditLogService;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
 import com.team7.enterpriseexpensemanagementsystem.specification.ExpenseSpecification;
+import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
+import com.team7.enterpriseexpensemanagementsystem.utils.ObjectMapperUtils;
 import com.team7.enterpriseexpensemanagementsystem.utils.UserUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -41,12 +44,18 @@ public class ExpenseServiceImpl implements ExpenseService {
             "manager reject", Approval.REJECTED_BY_MANAGER,
             "admin reject", Approval.REJECTED_BY_ADMIN
     );
+    private final AuditLogService auditLogService;
+    private final AuthUtils authUtils;
+    private final ObjectMapperUtils mapperUtils;
 
-    public ExpenseServiceImpl(ExpenseRepository expenseRepository, CategoryRepository categoryRepository, ModelMapper modelMapper, UserRepository userRepository) {
+    public ExpenseServiceImpl(ExpenseRepository expenseRepository, CategoryRepository categoryRepository, ModelMapper modelMapper, UserRepository userRepository, AuditLogService auditLogService, AuthUtils authUtils, ObjectMapperUtils objectMapperUtils) {
         this.expenseRepository = expenseRepository;
         this.categoryRepository = categoryRepository;
         this.modelMapper = modelMapper;
         this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
+        this.authUtils = authUtils;
+        this.mapperUtils = objectMapperUtils;
     }
 
     @Override
@@ -67,8 +76,7 @@ public class ExpenseServiceImpl implements ExpenseService {
             expense.setExpenseDate(localDate);
         }
         expense = expenseRepository.save(expense);
-
-        return ExpenseResponse.builder()
+        ExpenseResponse response = ExpenseResponse.builder()
                 .id(expense.getId())
                 .title(expense.getTitle())
                 .amount(expense.getAmount())
@@ -77,12 +85,39 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .status(expense.getStatus())
                 .message(expense.getMessage())
                 .build();
+
+        auditLogService.log(AuditLog.builder()
+                .entityName("expense")
+                .entityId(expense.getId())
+                .action("CREATE")
+                .performedBy(authUtils.loggedInEmail())
+                .oldValue("")
+                .newValue(mapperUtils.convertToJson(response))
+                .build());
+
+        return response;
     }
 
     @Override
     public ExpenseResponse updateExpense(ExpenseUpdateRequest dto) {
         Expense expense = getExpenseById(dto.getId());
         Category category = dto.getCategoryId() != null ? getCategoryById(dto.getCategoryId()) : expense.getCategory();
+        AuditLog auditLog = AuditLog.builder()
+                .entityName("expense")
+                .entityId(expense.getId())
+                .action("UPDATE")
+                .performedBy(authUtils.loggedInEmail())
+                .oldValue(mapperUtils.convertToJson(ExpenseResponse.builder()
+                        .id(expense.getId())
+                        .title(expense.getTitle())
+                        .amount(expense.getAmount())
+                        .expenseDate(expense.getExpenseDate())
+                        .category(category.getName())
+                        .status(expense.getStatus())
+                        .message(expense.getMessage())
+                        .build()))
+                .newValue("")
+                .build();
 
         expense.setTitle(dto.getTitle() != null ? dto.getTitle() : expense.getTitle());
         expense.setExpenseDate(dto.getExpenseDate() != null ? dto.getExpenseDate() : expense.getExpenseDate());
@@ -90,7 +125,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         expense.setCategory(category);
         expense = expenseRepository.save(expense);
 
-        return ExpenseResponse.builder()
+        ExpenseResponse response = ExpenseResponse.builder()
                 .id(expense.getId())
                 .title(expense.getTitle())
                 .amount(expense.getAmount())
@@ -99,12 +134,32 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .status(expense.getStatus())
                 .message(expense.getMessage())
                 .build();
+        auditLog.setNewValue(mapperUtils.convertToJson(response));
+        auditLogService.log(auditLog);
+        return response;
     }
 
     @Override
     public void deleteExpense(Long id) {
         Expense expense = getExpenseById(id);
+        Category category = expense.getCategory();
         expenseRepository.delete(expense);
+        auditLogService.log(AuditLog.builder()
+                .entityName("expense")
+                .entityId(expense.getId())
+                .action("CREATE")
+                .performedBy(authUtils.loggedInEmail())
+                .oldValue("")
+                .newValue(mapperUtils.convertToJson(ExpenseResponse.builder()
+                        .id(expense.getId())
+                        .title(expense.getTitle())
+                        .amount(expense.getAmount())
+                        .expenseDate(expense.getExpenseDate())
+                        .category(category.getName())
+                        .status(expense.getStatus())
+                        .message(expense.getMessage())
+                        .build()))
+                .build());
     }
 
     @Override
@@ -126,6 +181,22 @@ public class ExpenseServiceImpl implements ExpenseService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException("User is not logged in. Please log in to continue."));
         Expense expense = getExpenseById(id);
+        AuditLog auditLog = AuditLog.builder()
+                .entityName("expense")
+                .entityId(expense.getId())
+                .action("APPROVAL")
+                .performedBy(authUtils.loggedInEmail())
+                .oldValue(mapperUtils.convertToJson(ExpenseResponse.builder()
+                        .id(expense.getId())
+                        .title(expense.getTitle())
+                        .amount(expense.getAmount())
+                        .expenseDate(expense.getExpenseDate())
+                        .category(expense.getCategory().getName())
+                        .status(expense.getStatus())
+                        .message(expense.getMessage())
+                        .build()))
+                .newValue("")
+                .build();
 
         Approval status = resolveApprovalStatus(user, approvalRequest.getDecision());
         String message = approvalRequest.getMessage() != null
@@ -138,7 +209,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         expense.setMessage(message);
 
         expense = expenseRepository.save(expense);
-        return ExpenseResponse.builder()
+        ExpenseResponse response = ExpenseResponse.builder()
                 .id(expense.getId())
                 .title(expense.getTitle())
                 .amount(expense.getAmount())
@@ -147,6 +218,9 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .status(expense.getStatus())
                 .message(expense.getMessage())
                 .build();
+        auditLog.setNewValue(mapperUtils.convertToJson(response));
+        auditLogService.log(auditLog);
+        return response;
     }
 
     @Override
