@@ -11,7 +11,6 @@ import com.team7.enterpriseexpensemanagementsystem.payload.response.SignInRespon
 import com.team7.enterpriseexpensemanagementsystem.payload.response.UserInfoResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.RoleRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
-import com.team7.enterpriseexpensemanagementsystem.service.UserService;
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
