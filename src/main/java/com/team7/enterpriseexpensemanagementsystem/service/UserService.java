@@ -13,4 +13,8 @@ public interface UserService {
     PagedResponse<UserResponse> getAllUsers(String name, String email, String role, Double minAmount, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
     UserResponse getUserById(Long id);
     UserResponse updateRoles(Long id, RoleUpdateRequest request);
+
+    void generatePasswordResetToken(String email);
+
+    void resetPassword(String token, String newPassword);
 }

@@ -1,9 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.serviceImpl;
 
-import com.team7.enterpriseexpensemanagementsystem.entity.AuditLog;
-import com.team7.enterpriseexpensemanagementsystem.entity.Role;
-import com.team7.enterpriseexpensemanagementsystem.entity.Roles;
-import com.team7.enterpriseexpensemanagementsystem.entity.User;
+import com.team7.enterpriseexpensemanagementsystem.entity.*;
 import com.team7.enterpriseexpensemanagementsystem.exception.ApiException;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.RoleUpdateRequest;
@@ -12,9 +9,11 @@ import com.team7.enterpriseexpensemanagementsystem.payload.request.UserUpdateReq
 import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.UserResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
+import com.team7.enterpriseexpensemanagementsystem.repository.PasswordResetTokenRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.RoleRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.AuditLogService;
+import com.team7.enterpriseexpensemanagementsystem.service.EmailService;
 import com.team7.enterpriseexpensemanagementsystem.service.UserService;
 import com.team7.enterpriseexpensemanagementsystem.specification.UserSpecification;
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
@@ -22,6 +21,7 @@ import com.team7.enterpriseexpensemanagementsystem.utils.ObjectMapperUtils;
 import com.team7.enterpriseexpensemanagementsystem.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,12 +31,17 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+    @Value("${frontend.url}")
+    private String frontEndUrl;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -46,6 +51,8 @@ public class UserServiceImpl implements UserService {
     private final AuditLogService auditLogService;
     private final AuthUtils authUtils;
     private final ObjectMapperUtils mapperUtils;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailService emailService;
 
     @Override
     public UserResponse createUser(UserRequest request) {
@@ -247,5 +254,42 @@ public class UserServiceImpl implements UserService {
         auditLog.setNewValue(mapperUtils.convertToJson(getUserById(user.getId())));
         auditLogService.log(auditLog);
         return getUserById(user.getId());
+    }
+
+    @Override
+    public void generatePasswordResetToken(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Email not registered!"));
+
+        String token = UUID.randomUUID().toString();
+        Instant expiry = Instant.now().plus(24, ChronoUnit.HOURS);
+        PasswordResetToken passwordResetToken =
+                new PasswordResetToken(token, expiry, user);
+
+        passwordResetTokenRepository.save(passwordResetToken);
+
+        String resetUrl = frontEndUrl + "/reset-password?token=" + token;
+
+        emailService.sendPasswordResetEmail(email, resetUrl);
+    }
+
+    @Override
+    public void resetPassword(String token, String newPassword) {
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+                .orElseThrow(() -> new ApiException("Token not found"));
+
+        if(resetToken.isUsed())
+            throw new ApiException("Token is used");
+
+        if(resetToken.getExpiryDate().isBefore(Instant.now()))
+            throw new ApiException("Token is expired");
+
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+
+        userRepository.save(user);
+
+        resetToken.setUsed(true);
+        passwordResetTokenRepository.save(resetToken);
     }
 }

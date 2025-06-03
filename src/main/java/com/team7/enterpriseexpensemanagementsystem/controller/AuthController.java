@@ -11,6 +11,7 @@ import com.team7.enterpriseexpensemanagementsystem.payload.response.SignInRespon
 import com.team7.enterpriseexpensemanagementsystem.payload.response.UserInfoResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.RoleRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
+import com.team7.enterpriseexpensemanagementsystem.service.UserService;
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,7 @@ public class AuthController {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthUtils authUtils;
+    private final UserService userService;
 
     @PostMapping("/public/sign-in")
     public ResponseEntity<?> authenticateUser(@RequestBody SignInRequest loginRequest) {
@@ -112,5 +114,25 @@ public class AuthController {
         );
 
         return ResponseEntity.ok().body(response);
+    }
+    @PostMapping("/public/forget-password")
+    public ResponseEntity<?> forgetPassword(@RequestParam String email) {
+        try {
+            userService.generatePasswordResetToken(email);
+        }catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: Invalid email!"));
+        }
+        return ResponseEntity.ok(new MessageResponse("Password reset token generated successfully!"));
+    }
+
+    @PostMapping("/public/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestParam String token,
+                                           @RequestParam String newPassword) {
+        try {
+            userService.resetPassword(token, newPassword);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Invalid token!"));
+        }
+        return ResponseEntity.ok(new MessageResponse("Password reset successfully!"));
     }
 }
