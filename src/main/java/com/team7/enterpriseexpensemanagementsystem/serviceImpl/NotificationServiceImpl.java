@@ -16,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -29,9 +30,24 @@ public class NotificationServiceImpl implements NotificationService {
     public Notification saveNotification(Notification notification, Long userId) {
         User user = userRepository.findById(userId).
                 orElseThrow(() -> new ResourceNotFoundException("User with id " + userId + " not found"));
-        notification.setUserId(user.getId());
+        notification.setUser(user);
         notification.setSentAt(LocalDateTime.now());
         return notificationRepository.save(notification);
+    }
+
+    @Override
+    public Notification updateNotificationStatus(Long id) {
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification with id " + id + " not found"));
+        notification.setRead(false);
+        return notificationRepository.save(notification);
+    }
+
+    @Override
+    public void deleteNotification(Long id) {
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification with id " + id + " not found"));
+        notificationRepository.delete(notification);
     }
 
     @Override

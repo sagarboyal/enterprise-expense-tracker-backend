@@ -1,5 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
+import com.team7.enterpriseexpensemanagementsystem.entity.Notification;
 import com.team7.enterpriseexpensemanagementsystem.entity.Roles;
 import com.team7.enterpriseexpensemanagementsystem.entity.User;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
@@ -11,6 +12,7 @@ import com.team7.enterpriseexpensemanagementsystem.payload.response.SignInRespon
 import com.team7.enterpriseexpensemanagementsystem.payload.response.UserInfoResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.RoleRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
+import com.team7.enterpriseexpensemanagementsystem.service.NotificationService;
 import com.team7.enterpriseexpensemanagementsystem.service.UserService;
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,6 +50,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final AuthUtils authUtils;
     private final UserService userService;
+    private final NotificationService notificationService;
 
     @PostMapping("/public/sign-in")
     public ResponseEntity<?> authenticateUser(@RequestBody SignInRequest loginRequest) {
@@ -89,6 +92,11 @@ public class AuthController {
                         .orElseThrow(() -> new ResourceNotFoundException("Error: Role does not exist!"))))
                 .build();
         userRepository.save(user);
+
+        notificationService.saveNotification(
+                new Notification("Your account has been successfully created. Welcome aboard!"),
+                user.getId()
+        );
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }

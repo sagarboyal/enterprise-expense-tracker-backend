@@ -38,6 +38,14 @@ public class User {
     )
     private List<Expense> expenses = new ArrayList<>();
 
+    @OneToMany(
+            fetch = FetchType.LAZY,
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
+            mappedBy = "user",
+            orphanRemoval = true
+    )
+    private List<Notification> notifications = new ArrayList<>();
+
     public User(String fullName, String email, String password) {
         this.fullName = fullName;
         this.email = email;

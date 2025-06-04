@@ -5,5 +5,7 @@ import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedRespons
 
 public interface NotificationService {
     Notification saveNotification(Notification notification, Long userId);
-    PagedResponse<Notification> getNotifications(Long id, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
+    Notification updateNotificationStatus(Long id);
+    void deleteNotification(Long id);
+    PagedResponse<Notification> getNotifications(Long userId, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
 }

@@ -14,6 +14,7 @@ import com.team7.enterpriseexpensemanagementsystem.repository.RoleRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.AuditLogService;
 import com.team7.enterpriseexpensemanagementsystem.service.EmailService;
+import com.team7.enterpriseexpensemanagementsystem.service.NotificationService;
 import com.team7.enterpriseexpensemanagementsystem.service.UserService;
 import com.team7.enterpriseexpensemanagementsystem.specification.UserSpecification;
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
@@ -40,6 +41,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+    private final NotificationService notificationService;
     @Value("${frontend.url}")
     private String frontEndUrl;
 
@@ -81,6 +83,10 @@ public class UserServiceImpl implements UserService {
                 .newValue(mapperUtils.convertToJson(response))
                 .build());
 
+        notificationService.saveNotification(
+                new Notification("Your account has been successfully created. Welcome aboard!"),
+                user.getId()
+        );
         return response;
     }
 
@@ -116,6 +122,10 @@ public class UserServiceImpl implements UserService {
 
         auditLog.setNewValue(mapperUtils.convertToJson(getUserById(oldUser.getId())));
         auditLogService.log(auditLog);
+        notificationService.saveNotification(
+                new Notification("Your account has been successfully updated."),
+                oldUser.getId()
+        );
         return getUserById(oldUser.getId());
     }
 
@@ -253,6 +263,11 @@ public class UserServiceImpl implements UserService {
         auditLog.setAction(action.equalsIgnoreCase("promote") ? "PROMOTED" : "DEMOTED");
         auditLog.setNewValue(mapperUtils.convertToJson(getUserById(user.getId())));
         auditLogService.log(auditLog);
+        notificationService.saveNotification(
+                new Notification(action.equalsIgnoreCase("promote") ?
+                        "Congratulation you have been promoted.🔥":"Oops! sorry you have been demoted🥲!"),
+                user.getId()
+        );
         return getUserById(user.getId());
     }
 

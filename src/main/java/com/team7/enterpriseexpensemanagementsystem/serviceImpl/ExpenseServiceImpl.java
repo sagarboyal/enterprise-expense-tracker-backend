@@ -13,6 +13,7 @@ import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.AuditLogService;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
+import com.team7.enterpriseexpensemanagementsystem.service.NotificationService;
 import com.team7.enterpriseexpensemanagementsystem.specification.ExpenseSpecification;
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
 import com.team7.enterpriseexpensemanagementsystem.utils.ObjectMapperUtils;
@@ -47,8 +48,9 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final AuditLogService auditLogService;
     private final AuthUtils authUtils;
     private final ObjectMapperUtils mapperUtils;
+    private final NotificationService notificationService;
 
-    public ExpenseServiceImpl(ExpenseRepository expenseRepository, CategoryRepository categoryRepository, ModelMapper modelMapper, UserRepository userRepository, AuditLogService auditLogService, AuthUtils authUtils, ObjectMapperUtils objectMapperUtils) {
+    public ExpenseServiceImpl(ExpenseRepository expenseRepository, CategoryRepository categoryRepository, ModelMapper modelMapper, UserRepository userRepository, AuditLogService auditLogService, AuthUtils authUtils, ObjectMapperUtils objectMapperUtils, NotificationService notificationService) {
         this.expenseRepository = expenseRepository;
         this.categoryRepository = categoryRepository;
         this.modelMapper = modelMapper;
@@ -56,6 +58,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         this.auditLogService = auditLogService;
         this.authUtils = authUtils;
         this.mapperUtils = objectMapperUtils;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -221,6 +224,15 @@ public class ExpenseServiceImpl implements ExpenseService {
                 ? "APPROVED" : "REJECTED");
         auditLog.setNewValue(mapperUtils.convertToJson(response));
         auditLogService.log(auditLog);
+        notificationService.saveNotification(
+                new Notification(approvalRequest.getDecision().equalsIgnoreCase("approve")?
+                        user.getRoles().contains(new Role(Roles.ROLE_ADMIN))?
+                        "Congratulations! Your expense with id: "+expense.getId()+" successfully approved by Admin😁.":
+                                "Congratulations! Your expense with id: "+expense.getId()+" successfully approved " +
+                                        "by manager please wait for admin approval🤩.":
+                        "Oops! sorry  Your expense with id: "+expense.getId()+" got rejected 💔."),
+                user.getId()
+        );
         return response;
     }
 
