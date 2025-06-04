@@ -16,7 +16,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -39,7 +38,7 @@ public class NotificationServiceImpl implements NotificationService {
     public Notification updateNotificationStatus(Long id) {
         Notification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification with id " + id + " not found"));
-        notification.setRead(false);
+        notification.setRead(true);
         return notificationRepository.save(notification);
     }
 
@@ -51,8 +50,9 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public PagedResponse<Notification> getNotifications(Long userId, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
-        Specification<Notification> specs = Specification.where(NotificationSpecification.hasUserId(userId));
+    public PagedResponse<Notification> getNotifications(Long userId, Boolean status, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        Specification<Notification> specs = Specification.where(NotificationSpecification.hasUserId(userId))
+                .and(NotificationSpecification.isRead(status));
 
         Sort sort = sortOrder.equalsIgnoreCase("asc") ?
                 Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
