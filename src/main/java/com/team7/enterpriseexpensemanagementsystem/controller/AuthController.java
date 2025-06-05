@@ -123,7 +123,7 @@ public class AuthController {
 
         return ResponseEntity.ok().body(response);
     }
-    @PostMapping("/public/forget-password")
+    @PostMapping("/public/forgot-password")
     public ResponseEntity<?> forgetPassword(@RequestParam String email) {
         try {
             userService.generatePasswordResetToken(email);
