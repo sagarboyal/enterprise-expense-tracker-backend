@@ -1,5 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.repository;
 
+import com.team7.enterpriseexpensemanagementsystem.dto.StatusExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.entity.Expense;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -39,4 +40,18 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
             @Param("start") LocalDate start,
             @Param("end") LocalDate end
     );
+    @Query("SELECT e.status as status, SUM(e.amount) as total " +
+            "FROM Expense e " +
+            "WHERE (:userId IS NULL OR e.user.id = :userId) " +
+            "AND (:startDate IS NULL OR e.expenseDate >= :startDate) " +
+            "AND (:endDate IS NULL OR e.expenseDate <= :endDate) " +
+            "GROUP BY e.status")
+    List<Object[]> getStatusAnalytics(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+
+
 }

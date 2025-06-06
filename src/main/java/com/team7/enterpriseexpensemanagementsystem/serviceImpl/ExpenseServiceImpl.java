@@ -2,6 +2,7 @@ package com.team7.enterpriseexpensemanagementsystem.serviceImpl;
 
 import com.team7.enterpriseexpensemanagementsystem.dto.CategoryExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.dto.MonthlyExpenseDTO;
+import com.team7.enterpriseexpensemanagementsystem.dto.StatusExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.entity.*;
 import com.team7.enterpriseexpensemanagementsystem.exception.ApiException;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
@@ -35,6 +36,7 @@ import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ExpenseServiceImpl implements ExpenseService {
@@ -279,6 +281,18 @@ public class ExpenseServiceImpl implements ExpenseService {
         return data.stream()
                 .map(obj -> new CategoryExpenseDTO((String) obj[0], (Double) obj[1]))
                 .toList();
+    }
+
+    @Override
+    public List<StatusExpenseDTO> getStatusAnalytics(Long id, LocalDate startDate, LocalDate endDate) {
+        List<Object[]> rawData = expenseRepository.getStatusAnalytics(id, startDate, endDate);
+
+        return rawData.stream()
+                .map(obj -> new StatusExpenseDTO(
+                        obj[0].toString(),                  // or cast to (Approval) if using enum
+                        ((Number) obj[1]).doubleValue()
+                ))
+                .collect(Collectors.toList());
     }
 
 
