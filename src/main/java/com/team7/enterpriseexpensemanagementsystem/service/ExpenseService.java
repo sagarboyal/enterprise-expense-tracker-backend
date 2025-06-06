@@ -1,5 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.service;
 
+import com.team7.enterpriseexpensemanagementsystem.dto.CategoryExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.dto.MonthlyExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ApprovalRequest;
@@ -18,5 +19,6 @@ public interface ExpenseService {
     ExpenseResponse updateExpenseStatus(Long id, ApprovalRequest approvalRequest, String email);
     PagedResponse<ExpenseResponse> getFilteredExpenses(String categoryName, String status, LocalDate startDate, LocalDate endDate, Double minAmount, Double maxAmount, Long userId, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
     List<MonthlyExpenseDTO> getMonthlyAnalytics(Long id, LocalDate startDate, LocalDate endDate);
+    List<CategoryExpenseDTO> getCategoryAnalytics(Long id, LocalDate startDate, LocalDate endDate);
 }
 

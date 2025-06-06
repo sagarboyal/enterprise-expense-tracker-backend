@@ -1,5 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.serviceImpl;
 
+import com.team7.enterpriseexpensemanagementsystem.dto.CategoryExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.dto.MonthlyExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.entity.*;
 import com.team7.enterpriseexpensemanagementsystem.exception.ApiException;
@@ -270,6 +271,14 @@ public class ExpenseServiceImpl implements ExpenseService {
             Double total = (Double) obj[1];
             return new MonthlyExpenseDTO(monthName, total);
         }).toList();
+    }
+
+    @Override
+    public List<CategoryExpenseDTO> getCategoryAnalytics(Long id, LocalDate startDate, LocalDate endDate) {
+        List<Object[]> data = expenseRepository.getCategoryExpenseTotals(id, startDate, endDate);
+        return data.stream()
+                .map(obj -> new CategoryExpenseDTO((String) obj[0], (Double) obj[1]))
+                .toList();
     }
 
 

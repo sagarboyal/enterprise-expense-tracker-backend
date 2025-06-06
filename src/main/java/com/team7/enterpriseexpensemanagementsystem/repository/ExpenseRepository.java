@@ -26,4 +26,17 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
     List<Object[]> getMonthlyExpenseTotals(@Param("userId") Long userId,
                                            @Param("start") LocalDate start,
                                            @Param("end") LocalDate end);
+
+    @Query("SELECT e.category.name as category, SUM(e.amount) as total " +
+            "FROM Expense e " +
+            "WHERE (:userId IS NULL OR e.user.id = :userId) " +
+            "AND (:start IS NULL OR e.expenseDate >= :start) " +
+            "AND (:end IS NULL OR e.expenseDate <= :end) " +
+            "GROUP BY e.category.name " +
+            "ORDER BY total DESC")
+    List<Object[]> getCategoryExpenseTotals(
+            @Param("userId") Long userId,
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end
+    );
 }
