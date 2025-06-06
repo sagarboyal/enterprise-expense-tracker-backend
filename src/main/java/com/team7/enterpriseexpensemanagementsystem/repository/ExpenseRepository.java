@@ -52,6 +52,18 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
             @Param("endDate") LocalDate endDate
     );
 
+    @Query("SELECT SUM(e.amount) FROM Expense e WHERE e.user.id = :userId")
+    Double getTotalExpensesByUser(@Param("userId") Long userId);
 
+    @Query("SELECT COUNT(e) FROM Expense e WHERE e.user.id = :userId " +
+            "AND (e.status = com.team7.enterpriseexpensemanagementsystem.entity.Approval.APPROVED_BY_MANAGER " +
+            "OR e.status = com.team7.enterpriseexpensemanagementsystem.entity.Approval.APPROVED_BY_ADMIN) " +
+            "AND FUNCTION('MONTH', e.expenseDate) = :month " +
+            "AND FUNCTION('YEAR', e.expenseDate) = :year")
+    Long countApprovedThisMonth(@Param("userId") Long userId,
+                                @Param("month") int month,
+                                @Param("year") int year);
 
+    @Query("SELECT COUNT(e) FROM Expense e WHERE e.user.id = :userId AND e.status = com.team7.enterpriseexpensemanagementsystem.entity.Approval.PENDING")
+    Long countPendingApprovals(@Param("userId") Long userId);
 }

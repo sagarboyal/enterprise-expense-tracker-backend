@@ -1,12 +1,9 @@
 package com.team7.enterpriseexpensemanagementsystem.serviceImpl;
 
-import com.team7.enterpriseexpensemanagementsystem.dto.CategoryExpenseDTO;
-import com.team7.enterpriseexpensemanagementsystem.dto.MonthlyExpenseDTO;
-import com.team7.enterpriseexpensemanagementsystem.dto.StatusExpenseDTO;
+import com.team7.enterpriseexpensemanagementsystem.dto.*;
 import com.team7.enterpriseexpensemanagementsystem.entity.*;
 import com.team7.enterpriseexpensemanagementsystem.exception.ApiException;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
-import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ApprovalRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ExpenseUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
@@ -52,6 +49,8 @@ public class ExpenseServiceImpl implements ExpenseService {
             "manager reject", Approval.REJECTED_BY_MANAGER,
             "admin reject", Approval.REJECTED_BY_ADMIN
     );
+    private static final Map<Approval, String> reverseStatusMap = statusMap.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
     private final AuditLogService auditLogService;
     private final AuthUtils authUtils;
     private final ObjectMapperUtils mapperUtils;
@@ -293,6 +292,33 @@ public class ExpenseServiceImpl implements ExpenseService {
                         ((Number) obj[1]).doubleValue()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public SummaryDTO getSummary(Long id) {
+        Double totalExpenses = expenseRepository.getTotalExpensesByUser(id);
+        totalExpenses = (totalExpenses == null) ? 0.0 : totalExpenses;
+
+        LocalDate now = LocalDate.now();
+        int month = now.getMonthValue();
+        int year = now.getYear();
+
+        Long approvedCount = expenseRepository.countApprovedThisMonth(id, month, year);
+        Long pendingCount = expenseRepository.countPendingApprovals(id);
+
+        List<StatusExpenseDTO> rawStatusList = getStatusAnalytics(id, now.withDayOfMonth(1), now.withDayOfMonth(now.lengthOfMonth()));
+
+        // then just pass the status string directly
+        List<StatusExpenseDTO> mappedStatusList = rawStatusList.stream()
+                .map(dto -> new StatusExpenseDTO(
+                        dto.getStatus(),  // already string
+                        dto.getTotal()
+                ))
+                .collect(Collectors.toList());
+
+
+        // Build and return combined DTO
+        return new SummaryDTO(totalExpenses, approvedCount, pendingCount, mappedStatusList);
     }
 
 

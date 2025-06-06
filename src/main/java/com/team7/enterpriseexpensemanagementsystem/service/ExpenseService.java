@@ -1,9 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.service;
 
-import com.team7.enterpriseexpensemanagementsystem.dto.CategoryExpenseDTO;
-import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
-import com.team7.enterpriseexpensemanagementsystem.dto.MonthlyExpenseDTO;
-import com.team7.enterpriseexpensemanagementsystem.dto.StatusExpenseDTO;
+import com.team7.enterpriseexpensemanagementsystem.dto.*;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ApprovalRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ExpenseUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
@@ -22,5 +19,6 @@ public interface ExpenseService {
     List<MonthlyExpenseDTO> getMonthlyAnalytics(Long id, LocalDate startDate, LocalDate endDate);
     List<CategoryExpenseDTO> getCategoryAnalytics(Long id, LocalDate startDate, LocalDate endDate);
     List<StatusExpenseDTO> getStatusAnalytics(Long id, LocalDate startDate, LocalDate endDate);
+    SummaryDTO getSummary(Long id);
 }
 
