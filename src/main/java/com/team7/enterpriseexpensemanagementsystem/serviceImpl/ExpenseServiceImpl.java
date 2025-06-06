@@ -1,5 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.serviceImpl;
 
+import com.team7.enterpriseexpensemanagementsystem.dto.MonthlyExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.entity.*;
 import com.team7.enterpriseexpensemanagementsystem.exception.ApiException;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
@@ -27,8 +28,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -255,6 +259,17 @@ public class ExpenseServiceImpl implements ExpenseService {
         Page<Expense> expensePage = expenseRepository.findAll(specs, pageDetails);
         List<Expense> expenseList = expensePage.getContent();
         return getExpensePagedResponse(expensePage, expenseList);
+    }
+
+    @Override
+    public List<MonthlyExpenseDTO> getMonthlyAnalytics(Long id, LocalDate startDate, LocalDate endDate) {
+        List<Object[]> data = expenseRepository.getMonthlyExpenseTotals(id, startDate, endDate);
+        return data.stream().map(obj -> {
+            int monthNumber = (int) obj[0];
+            String monthName = Month.of(monthNumber).getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+            Double total = (Double) obj[1];
+            return new MonthlyExpenseDTO(monthName, total);
+        }).toList();
     }
 
 
