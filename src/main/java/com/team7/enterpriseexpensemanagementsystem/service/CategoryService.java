@@ -9,4 +9,5 @@ public interface CategoryService {
     CategoryDTO addCategory(CategoryDTO categoryDTO);
     CategoryDTO updateCategory(CategoryDTO categoryDTO);
     void deleteCategory(Long id);
+    CategoryDTO findByCategoryName(String categoryName);
 }

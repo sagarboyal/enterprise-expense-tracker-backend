@@ -83,6 +83,7 @@ public class CategoryServiceImpl implements CategoryService {
         boolean exists = categoryRepository.findOne(spec).isPresent();
         if (exists)
             throw new ResourceAlreadyExistsException("Category with name: "+categoryDTO.getName()+" already exists");
+        categoryDTO.setName(categoryDTO.getName().toLowerCase());
         Category category = categoryRepository.save(modelMapper.map(categoryDTO, Category.class));
         auditLogService.log(AuditLog.builder()
                         .entityName("category")
@@ -110,6 +111,7 @@ public class CategoryServiceImpl implements CategoryService {
         data.setName(
                 categoryDTO.getName() != null && !categoryDTO.getName().isEmpty()
                         ? categoryDTO.getName() : data.getName());
+        data.setName(data.getName().toLowerCase());
         data = categoryRepository.save(data);
 
         auditLog.setNewValue(mapperUtils.convertToJson(data));
@@ -129,5 +131,11 @@ public class CategoryServiceImpl implements CategoryService {
                 .performedBy(authUtils.loggedInEmail())
                 .oldValue(mapperUtils.convertToJson(data))
                 .build());
+    }
+
+    @Override
+    public CategoryDTO findByCategoryName(String categoryName) {
+        return modelMapper.map(categoryRepository.findByName(categoryName)
+                .orElseThrow(() -> new ResourceNotFoundException("Category with name: "+categoryName+" not found")), CategoryDTO.class);
     }
 }

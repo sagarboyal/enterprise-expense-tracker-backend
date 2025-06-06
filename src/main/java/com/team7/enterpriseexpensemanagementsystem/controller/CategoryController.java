@@ -29,6 +29,13 @@ public class CategoryController {
                 .body(categoryService.filterCategories(name, id, pageNumber, pageSize, sortBy, sortOrder));
     }
 
+    @GetMapping("/public/categories/name/{categoryName}")
+    public ResponseEntity<CategoryDTO> getCategoryByNameHandler(@PathVariable("categoryName") String categoryName) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(categoryService.findByCategoryName(categoryName));
+    }
+
     @GetMapping("/admin/categories/id/{id}")
     public ResponseEntity<CategoryDTO> getCategoryByIdHandler(@PathVariable("id") Long id) {
         return ResponseEntity
