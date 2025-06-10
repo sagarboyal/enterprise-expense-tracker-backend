@@ -1,6 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.specification;
 
-import com.team7.enterpriseexpensemanagementsystem.entity.Approval;
+import com.team7.enterpriseexpensemanagementsystem.entity.ApprovalStatus;
 import com.team7.enterpriseexpensemanagementsystem.entity.Expense;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -8,9 +8,9 @@ import java.time.LocalDate;
 
 public class ExpenseSpecification {
 
-    public static Specification<Expense> hasStatus(Approval status) {
+    public static Specification<Expense> hasStatus(ApprovalStatus status) {
         return (root, query, cb) -> status == null ? cb.conjunction()
-                : cb.equal(root.get("status"), status);
+                : cb.equal(root.get("approvals").get("status"), status);
     }
 
     public static Specification<Expense> hasCategory(String categoryName) {

@@ -8,6 +8,7 @@ import com.team7.enterpriseexpensemanagementsystem.payload.request.ApprovalReque
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ExpenseUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
+import com.team7.enterpriseexpensemanagementsystem.repository.ApprovalRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.CategoryRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
@@ -27,12 +28,12 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,21 +43,13 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final CategoryRepository categoryRepository;
     private final ModelMapper modelMapper;
     private final UserRepository userRepository;
-    private static final Map<String, Approval> statusMap = Map.of(
-            "pending", Approval.PENDING,
-            "manager approve", Approval.APPROVED_BY_MANAGER,
-            "admin approve", Approval.APPROVED_BY_ADMIN,
-            "manager reject", Approval.REJECTED_BY_MANAGER,
-            "admin reject", Approval.REJECTED_BY_ADMIN
-    );
-    private static final Map<Approval, String> reverseStatusMap = statusMap.entrySet().stream()
-            .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
     private final AuditLogService auditLogService;
     private final AuthUtils authUtils;
     private final ObjectMapperUtils mapperUtils;
     private final NotificationService notificationService;
+    private final ApprovalRepository approvalRepository;
 
-    public ExpenseServiceImpl(ExpenseRepository expenseRepository, CategoryRepository categoryRepository, ModelMapper modelMapper, UserRepository userRepository, AuditLogService auditLogService, AuthUtils authUtils, ObjectMapperUtils objectMapperUtils, NotificationService notificationService) {
+    public ExpenseServiceImpl(ExpenseRepository expenseRepository, CategoryRepository categoryRepository, ModelMapper modelMapper, UserRepository userRepository, AuditLogService auditLogService, AuthUtils authUtils, ObjectMapperUtils objectMapperUtils, NotificationService notificationService, ApprovalRepository approvalRepository) {
         this.expenseRepository = expenseRepository;
         this.categoryRepository = categoryRepository;
         this.modelMapper = modelMapper;
@@ -65,6 +58,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         this.authUtils = authUtils;
         this.mapperUtils = objectMapperUtils;
         this.notificationService = notificationService;
+        this.approvalRepository = approvalRepository;
     }
 
     @Override
@@ -76,23 +70,35 @@ public class ExpenseServiceImpl implements ExpenseService {
         Expense expense = modelMapper.map(dto, Expense.class);
         expense.setCategory(category);
         expense.setUser(user);
-        expense.setStatus(Approval.PENDING);
-        expense.setMessage(Approval.PENDING.getMessage());
+
+        Approval approvalRecords = Approval.builder()
+                        .userId(user.getId())
+                        .level(ApprovalLevel.MANAGER)
+                        .status(ApprovalStatus.PENDING)
+                        .actionTime(LocalDateTime.now())
+                        .comment("Wait for manager approval!")
+                        .build();
 
         if(dto.getExpenseDate() == null) {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             LocalDate localDate = LocalDate.parse(LocalDate.now().format(formatter));
             expense.setExpenseDate(localDate);
         }
-        expense = expenseRepository.save(expense);
+
+        approvalRecords.setExpense(expense);
+        expense.getApprovals().add(approvalRecords);
+        expense = expenseRepository.save(expense); // Only one save
+
+
         ExpenseResponse response = ExpenseResponse.builder()
                 .id(expense.getId())
                 .title(expense.getTitle())
                 .amount(expense.getAmount())
                 .expenseDate(expense.getExpenseDate())
                 .category(category.getName())
-                .status(expense.getStatus())
-                .message(expense.getMessage())
+                .status(approvalRecords.getStatus())
+                .level(approvalRecords.getLevel())
+                .message(approvalRecords.getComment())
                 .build();
 
         auditLogService.log(AuditLog.builder()
@@ -111,6 +117,12 @@ public class ExpenseServiceImpl implements ExpenseService {
     public ExpenseResponse updateExpense(ExpenseUpdateRequest dto) {
         Expense expense = getExpenseById(dto.getId());
         Category category = dto.getCategoryId() != null ? getCategoryById(dto.getCategoryId()) : expense.getCategory();
+
+        List<Approval> approvals = expense.getApprovals();
+        Approval latest = approvals != null && !approvals.isEmpty()
+                ? approvals.get(approvals.size() - 1)
+                : null;
+
         AuditLog auditLog = AuditLog.builder()
                 .entityName("expense")
                 .entityId(expense.getId())
@@ -122,8 +134,9 @@ public class ExpenseServiceImpl implements ExpenseService {
                         .amount(expense.getAmount())
                         .expenseDate(expense.getExpenseDate())
                         .category(category.getName())
-                        .status(expense.getStatus())
-                        .message(expense.getMessage())
+                        .status(latest != null ? latest.getStatus() : null)
+                        .level(latest != null ? latest.getLevel() : null)
+                        .message(latest != null ? latest.getComment() : null)
                         .build()))
                 .newValue("")
                 .build();
@@ -140,8 +153,9 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .amount(expense.getAmount())
                 .expenseDate(expense.getExpenseDate())
                 .category(category.getName())
-                .status(expense.getStatus())
-                .message(expense.getMessage())
+                .status(latest != null ? latest.getStatus() : null)
+                .level(latest != null ? latest.getLevel() : null)
+                .message(latest != null ? latest.getComment() : null)
                 .build();
         auditLog.setNewValue(mapperUtils.convertToJson(response));
         auditLogService.log(auditLog);
@@ -152,6 +166,12 @@ public class ExpenseServiceImpl implements ExpenseService {
     public void deleteExpense(Long id) {
         Expense expense = getExpenseById(id);
         Category category = expense.getCategory();
+
+        List<Approval> approvals = expense.getApprovals();
+        Approval latest = approvals != null && !approvals.isEmpty()
+                ? approvals.get(approvals.size() - 1)
+                : null;
+
         expenseRepository.delete(expense);
         auditLogService.log(AuditLog.builder()
                 .entityName("expense")
@@ -165,8 +185,9 @@ public class ExpenseServiceImpl implements ExpenseService {
                         .amount(expense.getAmount())
                         .expenseDate(expense.getExpenseDate())
                         .category(category.getName())
-                        .status(expense.getStatus())
-                        .message(expense.getMessage())
+                        .status(latest != null ? latest.getStatus() : null)
+                        .level(latest != null ? latest.getLevel() : null)
+                        .message(latest != null ? latest.getComment() : null)
                         .build()))
                 .build());
     }
@@ -174,15 +195,13 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Override
     public ExpenseResponse getExpenseByExpenseId(Long id) {
         Expense expense = getExpenseById(id);
-        return ExpenseResponse.builder()
-                .id(expense.getId())
-                .title(expense.getTitle())
-                .amount(expense.getAmount())
-                .expenseDate(expense.getExpenseDate())
-                .category(expense.getCategory().getName())
-                .status(expense.getStatus())
-                .message(expense.getMessage())
-                .build();
+
+        List<Approval> approvals = expense.getApprovals();
+        Approval latest = approvals != null && !approvals.isEmpty()
+                ? approvals.get(approvals.size() - 1)
+                : null;
+
+        return getExpenseResponseWithLatestApproval(expense, latest);
     }
 
     @Override
@@ -190,55 +209,64 @@ public class ExpenseServiceImpl implements ExpenseService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException("User is not logged in. Please log in to continue."));
         Expense expense = getExpenseById(id);
+
+        List<Approval> approvals = expense.getApprovals();
+        Approval latest = approvals != null && !approvals.isEmpty()
+                ? approvals.get(approvals.size() - 1)
+                : null;
+
         AuditLog auditLog = AuditLog.builder()
                 .entityName("expense")
                 .entityId(expense.getId())
                 .performedBy(authUtils.loggedInEmail())
-                .oldValue(mapperUtils.convertToJson(ExpenseResponse.builder()
-                        .id(expense.getId())
-                        .title(expense.getTitle())
-                        .amount(expense.getAmount())
-                        .expenseDate(expense.getExpenseDate())
-                        .category(expense.getCategory().getName())
-                        .status(expense.getStatus())
-                        .message(expense.getMessage())
-                        .build()))
+                .oldValue(mapperUtils.convertToJson(getExpenseResponseWithLatestApproval(expense, latest)))
                 .newValue("")
                 .build();
 
-        Approval status = resolveApprovalStatus(user, approvalRequest.getDecision());
-        String message = approvalRequest.getMessage() != null
-                && !approvalRequest.getMessage().trim().isEmpty()
-                ? approvalRequest.getMessage() :
-                status.getMessage();
+        Approval approval = resolveApprovalStatus(user, expense, approvalRequest.getDecision());
+        if(approvalRequest.getMessage() != null) {
+            approval.setComment(approvalRequest.getMessage());
+        }
+        approval = approvalRepository.save(approval);
 
-
-        expense.setStatus(status);
-        expense.setMessage(message);
-
+        expense.getApprovals().add(approval);
         expense = expenseRepository.save(expense);
+
+        approvals = expense.getApprovals();
+        latest = approvals != null && !approvals.isEmpty()
+                ? approvals.get(approvals.size() - 1)
+                : null;
+
         ExpenseResponse response = ExpenseResponse.builder()
                 .id(expense.getId())
                 .title(expense.getTitle())
                 .amount(expense.getAmount())
                 .expenseDate(expense.getExpenseDate())
                 .category(expense.getCategory().getName())
-                .status(expense.getStatus())
-                .message(expense.getMessage())
+                .status(latest != null ? latest.getStatus() : null)
+                .level(latest != null ? latest.getLevel() : null)
+                .message(latest != null ? latest.getComment() : null)
                 .build();
+
         auditLog.setAction(approvalRequest.getDecision().equalsIgnoreCase("approve")
                 ? "APPROVED" : "REJECTED");
         auditLog.setNewValue(mapperUtils.convertToJson(response));
         auditLogService.log(auditLog);
-        notificationService.saveNotification(
-                new Notification(approvalRequest.getDecision().equalsIgnoreCase("approve")?
-                        user.getRoles().contains(new Role(Roles.ROLE_ADMIN))?
-                        "Congratulations! Your expense with id: "+expense.getId()+" successfully approved by Admin😁.":
-                                "Congratulations! Your expense with id: "+expense.getId()+" successfully approved " +
-                                        "by manager please wait for admin approval🤩.":
-                        "Oops! sorry  Your expense with id: "+expense.getId()+" got rejected 💔."),
-                user.getId()
-        );
+
+        String message;
+        if (approvalRequest.getDecision().equalsIgnoreCase("approve")) {
+            if (UserUtils.isAdmin(user)) {
+                message = "🎉 Congratulations! Your expense with ID " + expense.getId() + " has been approved by Admin.";
+            } else if (UserUtils.isManager(user)) {
+                message = "✅ Your expense with ID " + expense.getId() + " has been approved by Manager. Please wait for Admin approval.";
+            } else {
+                message = "✅ Your expense with ID " + expense.getId() + " has been approved.";
+            }
+        } else {
+            message = "❌ Oops! Your expense with ID " + expense.getId() + " was rejected.";
+        }
+        notificationService.saveNotification(new Notification(message), user.getId());
+
         return response;
     }
 
@@ -261,6 +289,15 @@ public class ExpenseServiceImpl implements ExpenseService {
         Page<Expense> expensePage = expenseRepository.findAll(specs, pageDetails);
         List<Expense> expenseList = expensePage.getContent();
         return getExpensePagedResponse(expensePage, expenseList);
+    }
+
+    private ApprovalStatus covertStatus(String status) {
+        if(status.equalsIgnoreCase("pending"))
+            return ApprovalStatus.PENDING;
+        else if (status.equalsIgnoreCase("approved"))
+            return ApprovalStatus.APPROVED;
+        else
+            return ApprovalStatus.REJECTED;
     }
 
     @Override
@@ -334,16 +371,16 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     private PagedResponse<ExpenseResponse> getExpensePagedResponse(Page<Expense> expensePage, List<Expense> expenses) {
         List<ExpenseResponse> response = expenses.stream()
-                .map(expense -> ExpenseResponse.builder()
-                        .id(expense.getId())
-                        .title(expense.getTitle())
-                        .amount(expense.getAmount())
-                        .expenseDate(expense.getExpenseDate())
-                        .category(expense.getCategory().getName())
-                        .status(expense.getStatus())
-                        .message(expense.getMessage())
-                        .build())
+                .map(expense -> {
+                    List<Approval> approvals = expense.getApprovals();
+                    Approval latest = (approvals != null && !approvals.isEmpty())
+                            ? approvals.get(approvals.size() - 1)
+                            : null;
+
+                    return getExpenseResponseWithLatestApproval(expense, latest);
+                })
                 .toList();
+
 
         return PagedResponse.<ExpenseResponse>builder()
                 .content(response)
@@ -355,12 +392,17 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .build();
     }
 
-    private Approval covertStatus(String status) {
-        if(status == null) return null;
-        if (!statusMap.containsKey(status.toLowerCase())) {
-            throw new ApiException("Invalid approval status: " + status);
-        }
-        return statusMap.get(status.toLowerCase());
+    private ExpenseResponse getExpenseResponseWithLatestApproval(Expense expense, Approval latest) {
+        return ExpenseResponse.builder()
+                .id(expense.getId())
+                .title(expense.getTitle())
+                .amount(expense.getAmount())
+                .expenseDate(expense.getExpenseDate())
+                .category(expense.getCategory().getName())
+                .status(latest != null ? latest.getStatus() : null)
+                .level(latest != null ? latest.getLevel() : null)
+                .message(latest != null ? latest.getComment() : null)
+                .build(); // <- semicolon was missing here
     }
 
     private Category getCategoryById(Long id) {
@@ -373,16 +415,54 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found with id: " + id));
     }
 
-    private Approval resolveApprovalStatus(User user, String decision) {
+    private Approval resolveApprovalStatus(User user, Expense expense, String decision) {
         boolean isApproved = decision.equalsIgnoreCase("approve");
 
-        if (UserUtils.isAdmin(user)) {
-            return isApproved ? Approval.APPROVED_BY_ADMIN : Approval.REJECTED_BY_ADMIN;
-        } else if (UserUtils.isManager(user)) {
-            return isApproved ? Approval.APPROVED_BY_MANAGER : Approval.REJECTED_BY_MANAGER;
-        } else {
-            throw new ApiException("Only managers or admins can update expense status.");
+        Approval approval = Approval.builder()
+                .userId(user.getId())
+                .expense(expense)
+                .actionTime(LocalDateTime.now())
+                .status(isApproved ? ApprovalStatus.APPROVED : ApprovalStatus.REJECTED)
+                .build();
+
+        List<Approval> approvals = expense.getApprovals();
+        Approval latest = (approvals != null && !approvals.isEmpty())
+                ? approvals.get(approvals.size() - 1)
+                : null;
+
+        if (latest != null && latest.getStatus() == ApprovalStatus.APPROVED && latest.getLevel() == ApprovalLevel.ADMIN) {
+            throw new ApiException("Expense has already been approved by admin.");
         }
+
+        if (UserUtils.isAdmin(user)) {
+            if (latest != null && latest.getStatus() == ApprovalStatus.REJECTED) {
+                throw new ApiException("Expense approval is already rejected.");
+            } else if (latest != null && (latest.getLevel() != ApprovalLevel.MANAGER || latest.getStatus() != ApprovalStatus.APPROVED)) {
+                throw new ApiException("Manager approval is required before admin can approve.");
+            }
+
+            approval.setLevel(ApprovalLevel.ADMIN);
+            approval.setComment(isApproved
+                    ? "Final review passed. Approved by admin."
+                    : "Final approval denied. Expense not aligned with financial rules.");
+        } else if (UserUtils.isManager(user)) {
+            if (latest != null && latest.getStatus() == ApprovalStatus.REJECTED) {
+                throw new ApiException("Expense approval is already rejected.");
+            } else if (latest != null && (latest.getLevel() == ApprovalLevel.MANAGER && latest.getStatus() == ApprovalStatus.APPROVED)){
+                throw new ApiException("Manager cannot reject this expense. It's either already reviewed or not in your level.");
+            }
+
+            approval.setLevel(ApprovalLevel.MANAGER);
+            approval.setComment(isApproved
+                    ? "Initial verification successful. Forwarded to admin for final approval."
+                    : "Rejected for exceeding department-level budget.");
+        } else {
+            throw new ApiException("User has no valid approval role.");
+        }
+
+        return approval;
     }
+
+
 
 }

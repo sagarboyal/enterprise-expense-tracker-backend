@@ -8,6 +8,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,12 +26,6 @@ public class Expense {
     private Double amount;
     private LocalDate expenseDate;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 30)
-    private Approval status;
-
-    private String message;
-
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
@@ -38,5 +35,10 @@ public class Expense {
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "expense", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Approval> approvals = new ArrayList<>();
+
 }
 
