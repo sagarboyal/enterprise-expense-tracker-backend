@@ -18,7 +18,9 @@ import com.team7.enterpriseexpensemanagementsystem.service.NotificationService;
 import com.team7.enterpriseexpensemanagementsystem.specification.ExpenseSpecification;
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
 import com.team7.enterpriseexpensemanagementsystem.utils.ObjectMapperUtils;
+import com.team7.enterpriseexpensemanagementsystem.utils.PdfExportUtils;
 import com.team7.enterpriseexpensemanagementsystem.utils.UserUtils;
+import jakarta.servlet.http.HttpServletResponse;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,11 +29,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -272,7 +276,8 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     public PagedResponse<ExpenseResponse> getFilteredExpenses(String categoryName, String status, LocalDate startDate, LocalDate endDate, Double minAmount, Double maxAmount, Long userId,
-                                             Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+                                             Integer pageNumber, Integer pageSize, String sortBy, String sortOrder,
+                                                              Boolean export, HttpServletResponse response) {
         Specification<Expense> specs = Specification.where(ExpenseSpecification.hasStatus(covertStatus(status)))
                 .and(ExpenseSpecification.hasCategory(categoryName))
                 .and(ExpenseSpecification.expenseDateBetween(startDate, endDate))
@@ -288,10 +293,20 @@ public class ExpenseServiceImpl implements ExpenseService {
         Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sort);
         Page<Expense> expensePage = expenseRepository.findAll(specs, pageDetails);
         List<Expense> expenseList = expensePage.getContent();
-        return getExpensePagedResponse(expensePage, expenseList);
+        PagedResponse<ExpenseResponse> expenseResponseList = getExpensePagedResponse(expensePage, expenseList);
+        if(export)
+            try{
+                exportFilteredExpenses(expenseResponseList.getContent(), response);
+            }catch(Exception e){
+                System.out.println(e.getMessage());
+            }
+
+
+        return expenseResponseList;
     }
 
     private ApprovalStatus covertStatus(String status) {
+        if(status == null || status.isEmpty()) return null;
         if(status.equalsIgnoreCase("pending"))
             return ApprovalStatus.PENDING;
         else if (status.equalsIgnoreCase("approved"))
@@ -357,6 +372,18 @@ public class ExpenseServiceImpl implements ExpenseService {
         // Build and return combined DTO
         return new SummaryDTO(totalExpenses, approvedCount, pendingCount, mappedStatusList);
     }
+
+    @Override
+    public void exportFilteredExpenses(
+            List<ExpenseResponse> expenseList,
+            HttpServletResponse response
+    ) throws IOException {
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "attachment; filename=expense_report.pdf");
+
+        PdfExportUtils.exportExpenses("Expense Report", expenseList, response.getOutputStream());
+    }
+
 
 
     private PagedResponse<ExpenseResponse> getExpenseResponse(Page<Expense> expensePage) {

@@ -4,6 +4,7 @@ import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -31,11 +32,13 @@ public class ManagerController {
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
-            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder,
+            @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
+            HttpServletResponse response
     ) {
         return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, "pending", startDate, endDate, minAmount, maxAmount,
                 userId,
-                pageNumber, pageSize, sortBy, sortOrder));
+                pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
     @GetMapping("/list/approved")
     public ResponseEntity<PagedResponse<ExpenseResponse>> getApproveExpenses(
@@ -48,11 +51,13 @@ public class ManagerController {
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
-            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder,
+            @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
+            HttpServletResponse response
     ) {
         return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, "manager approve", startDate, endDate, minAmount, maxAmount,
                 userId,
-                pageNumber, pageSize, sortBy, sortOrder));
+                pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
     @GetMapping("/list/rejected")
     public ResponseEntity<PagedResponse<ExpenseResponse>> getRejectedExpenses(
@@ -65,10 +70,12 @@ public class ManagerController {
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
-            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder,
+            @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
+            HttpServletResponse response
     ) {
         return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, "manager reject", startDate, endDate, minAmount, maxAmount,
                 userId,
-                pageNumber, pageSize, sortBy, sortOrder));
+                pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
 }

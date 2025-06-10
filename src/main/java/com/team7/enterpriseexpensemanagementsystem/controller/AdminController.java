@@ -6,6 +6,7 @@ import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseRespo
 import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.AuditLogService;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -31,11 +32,13 @@ public class AdminController {
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
-            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder,
+            @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
+            HttpServletResponse response
     ) {
         return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, "manager approve", startDate, endDate, minAmount, maxAmount,
                 userId,
-                pageNumber, pageSize, sortBy, sortOrder));
+                pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
 
     @GetMapping("/list/approved")
@@ -49,11 +52,13 @@ public class AdminController {
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
-            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder,
+            @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
+            HttpServletResponse response
     ) {
         return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, "admin approve", startDate, endDate, minAmount, maxAmount,
                 userId,
-                pageNumber, pageSize, sortBy, sortOrder));
+                pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
 
     @GetMapping("/list/rejected")
@@ -67,11 +72,13 @@ public class AdminController {
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
-            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder,
+            @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
+            HttpServletResponse response
     ) {
         return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, "admin reject", startDate, endDate, minAmount, maxAmount,
                 userId,
-                pageNumber, pageSize, sortBy, sortOrder));
+                pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
 
     @GetMapping("/filter-list")
@@ -86,11 +93,13 @@ public class AdminController {
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
-            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder,
+            @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
+            HttpServletResponse response
     ) {
         return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, status, startDate, endDate, minAmount, maxAmount,
                 userId,
-                pageNumber, pageSize, sortBy, sortOrder));
+                pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
 
     @GetMapping("/audit-log")
