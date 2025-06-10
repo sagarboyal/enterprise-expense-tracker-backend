@@ -6,7 +6,6 @@ import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
-import org.springframework.stereotype.Component;
 
 import java.awt.*;
 import java.io.IOException;

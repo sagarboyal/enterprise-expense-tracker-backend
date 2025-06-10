@@ -35,7 +35,6 @@ import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -382,18 +381,6 @@ public class ExpenseServiceImpl implements ExpenseService {
         response.setHeader("Content-Disposition", "attachment; filename=expense_report.pdf");
 
         PdfExportUtils.exportExpenses("Expense Report", expenseList, response.getOutputStream());
-    }
-
-
-
-    private PagedResponse<ExpenseResponse> getExpenseResponse(Page<Expense> expensePage) {
-        List<Expense> expenses = expensePage.getContent();
-
-        if (expenses.isEmpty()) {
-            throw new ResourceNotFoundException("No expenses found!");
-        }
-
-        return getExpensePagedResponse(expensePage, expenses);
     }
 
     private PagedResponse<ExpenseResponse> getExpensePagedResponse(Page<Expense> expensePage, List<Expense> expenses) {
