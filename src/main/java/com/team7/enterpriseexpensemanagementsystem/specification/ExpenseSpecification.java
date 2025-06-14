@@ -9,8 +9,11 @@ import java.time.LocalDate;
 public class ExpenseSpecification {
 
     public static Specification<Expense> hasStatus(ApprovalStatus status) {
-        return (root, query, cb) -> status == null ? cb.conjunction()
-                : cb.equal(root.get("approvals").get("status"), status);
+        return (root, query, cb) -> {
+            if (status == null) return cb.conjunction();
+            return cb.equal(root.get("status"), status);
+        };
+
     }
 
     public static Specification<Expense> hasCategory(String categoryName) {
@@ -42,4 +45,9 @@ public class ExpenseSpecification {
                 criteriaBuilder.equal(root.get("user").get("id"), userId));
     }
 
+    public static Specification<Expense> hasTitle(String title) {
+        return (root, query, cb) ->
+                title == null ? cb.conjunction() :
+                cb.like(root.get("title"), "%"+title+"%");
+    }
 }

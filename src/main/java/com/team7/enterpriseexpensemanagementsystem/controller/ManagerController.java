@@ -36,7 +36,7 @@ public class ManagerController {
             @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
             HttpServletResponse response
     ) {
-        return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, "pending", startDate, endDate, minAmount, maxAmount,
+        return ResponseEntity.ok(expenseService.getFilteredExpenses(null, categoryName, "pending", startDate, endDate, minAmount, maxAmount,
                 userId,
                 pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
@@ -55,7 +55,7 @@ public class ManagerController {
             @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
             HttpServletResponse response
     ) {
-        return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, "manager approve", startDate, endDate, minAmount, maxAmount,
+        return ResponseEntity.ok(expenseService.getFilteredExpenses(null, categoryName, "manager approve", startDate, endDate, minAmount, maxAmount,
                 userId,
                 pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
@@ -74,7 +74,7 @@ public class ManagerController {
             @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
             HttpServletResponse response
     ) {
-        return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, "manager reject", startDate, endDate, minAmount, maxAmount,
+        return ResponseEntity.ok(expenseService.getFilteredExpenses(null, categoryName, "manager reject", startDate, endDate, minAmount, maxAmount,
                 userId,
                 pageNumber, pageSize, sortBy, sortOrder, export, response));
     }

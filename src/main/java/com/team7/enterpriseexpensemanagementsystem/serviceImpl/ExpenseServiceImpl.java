@@ -268,20 +268,21 @@ public class ExpenseServiceImpl implements ExpenseService {
         } else {
             message = "❌ Oops! Your expense with ID " + expense.getId() + " was rejected.";
         }
-        notificationService.saveNotification(new Notification(message), user.getId());
+        notificationService.saveNotification(new Notification(message), expense.getUser().getId());
 
         return response;
     }
 
     @Override
-    public PagedResponse<ExpenseResponse> getFilteredExpenses(String categoryName, String status, LocalDate startDate, LocalDate endDate, Double minAmount, Double maxAmount, Long userId,
+    public PagedResponse<ExpenseResponse> getFilteredExpenses(String title, String categoryName, String status, LocalDate startDate, LocalDate endDate, Double minAmount, Double maxAmount, Long userId,
                                              Integer pageNumber, Integer pageSize, String sortBy, String sortOrder,
                                                               Boolean export, HttpServletResponse response) {
-        Specification<Expense> specs = Specification.where(ExpenseSpecification.hasStatus(covertStatus(status)))
+        Specification<Expense> specs = Specification.where(ExpenseSpecification.hasStatus(convertStatus(status)))
                 .and(ExpenseSpecification.hasCategory(categoryName))
                 .and(ExpenseSpecification.expenseDateBetween(startDate, endDate))
                 .and(ExpenseSpecification.amountBetween(minAmount, maxAmount))
-                .and(ExpenseSpecification.user(userId));
+                .and(ExpenseSpecification.user(userId))
+                .and(ExpenseSpecification.hasTitle(title));
 
 
 
@@ -304,15 +305,16 @@ public class ExpenseServiceImpl implements ExpenseService {
         return expenseResponseList;
     }
 
-    private ApprovalStatus covertStatus(String status) {
-        if(status == null || status.isEmpty()) return null;
-        if(status.equalsIgnoreCase("pending"))
-            return ApprovalStatus.PENDING;
-        else if (status.equalsIgnoreCase("approved"))
-            return ApprovalStatus.APPROVED;
-        else
-            return ApprovalStatus.REJECTED;
+    private ApprovalStatus convertStatus(String status) {
+        if (status == null || status.isEmpty()) return null;
+        return switch (status.toLowerCase()) {
+            case "pending" -> ApprovalStatus.PENDING;
+            case "approved" -> ApprovalStatus.APPROVED;
+            case "rejected" -> ApprovalStatus.REJECTED;
+            default -> null;
+        };
     }
+
 
     @Override
     public List<MonthlyExpenseDTO> getMonthlyAnalytics(Long id, LocalDate startDate, LocalDate endDate) {

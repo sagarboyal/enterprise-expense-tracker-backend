@@ -35,6 +35,7 @@ public class ExpenseController {
 
     @GetMapping
     public ResponseEntity<PagedResponse<ExpenseResponse>> getAllExpenses(
+            @RequestParam(name = "title", required = false) String title,
             @RequestParam(name = "categoryName", required = false) String categoryName,
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -48,7 +49,7 @@ public class ExpenseController {
             @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
             HttpServletResponse response
     ) {
-        return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, status, startDate, endDate, minAmount, maxAmount,
+        return ResponseEntity.ok(expenseService.getFilteredExpenses(title, categoryName, status, startDate, endDate, minAmount, maxAmount,
                 authUtil.loggedInUser().getId(),
                 pageNumber, pageSize, sortBy, sortOrder, export, response));
     }

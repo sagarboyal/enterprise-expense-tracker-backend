@@ -36,7 +36,7 @@ public class AdminController {
             @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
             HttpServletResponse response
     ) {
-        return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, "manager approve", startDate, endDate, minAmount, maxAmount,
+        return ResponseEntity.ok(expenseService.getFilteredExpenses(null, categoryName, "manager approve", startDate, endDate, minAmount, maxAmount,
                 userId,
                 pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
@@ -56,7 +56,7 @@ public class AdminController {
             @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
             HttpServletResponse response
     ) {
-        return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, "admin approve", startDate, endDate, minAmount, maxAmount,
+        return ResponseEntity.ok(expenseService.getFilteredExpenses(null, categoryName, "admin approve", startDate, endDate, minAmount, maxAmount,
                 userId,
                 pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
@@ -76,7 +76,7 @@ public class AdminController {
             @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
             HttpServletResponse response
     ) {
-        return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, "admin reject", startDate, endDate, minAmount, maxAmount,
+        return ResponseEntity.ok(expenseService.getFilteredExpenses(null, categoryName, "admin reject", startDate, endDate, minAmount, maxAmount,
                 userId,
                 pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
@@ -97,7 +97,7 @@ public class AdminController {
             @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
             HttpServletResponse response
     ) {
-        return ResponseEntity.ok(expenseService.getFilteredExpenses(categoryName, status, startDate, endDate, minAmount, maxAmount,
+        return ResponseEntity.ok(expenseService.getFilteredExpenses(null, categoryName, status, startDate, endDate, minAmount, maxAmount,
                 userId,
                 pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
