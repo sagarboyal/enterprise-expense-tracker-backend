@@ -10,6 +10,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/notification")
 @RequiredArgsConstructor
@@ -39,5 +42,17 @@ public class NotificationController {
     public ResponseEntity<String> deleteNotification(@PathVariable Long id){
         notificationService.deleteNotification(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    @GetMapping("/unread-count")
+    public ResponseEntity<Map<String, Long>> getUnreadCount() {
+        long count = notificationService.getUnreadCount();
+        return ResponseEntity.ok(Collections.singletonMap("unreadCount", count));
+    }
+
+    @PutMapping("/mark-all-read")
+    public ResponseEntity<Void> markAllAsRead() {
+        notificationService.markAllAsRead();
+        return ResponseEntity.ok().build();
     }
 }

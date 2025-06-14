@@ -8,6 +8,8 @@ import com.team7.enterpriseexpensemanagementsystem.repository.NotificationReposi
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.NotificationService;
 import com.team7.enterpriseexpensemanagementsystem.specification.NotificationSpecification;
+import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,6 +26,7 @@ import java.util.List;
 public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final AuthUtils authUtils;
 
     @Override
     public Notification saveNotification(Notification notification, Long userId) {
@@ -69,5 +72,16 @@ public class NotificationServiceImpl implements NotificationService {
                 .totalPages(pageResponse.getTotalPages())
                 .lastPage(pageResponse.isLast())
                 .build();
+    }
+
+    @Override
+    public long getUnreadCount() {
+        return notificationRepository.countByReadFalseAndUser_Id(authUtils.loggedInUser().getId());
+    }
+
+    @Transactional
+    @Override
+    public void markAllAsRead() {
+        notificationRepository.markAllAsReadByUserId(authUtils.loggedInUser().getId());
     }
 }
