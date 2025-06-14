@@ -19,6 +19,7 @@ public class ExpenseResponse {
     private Double amount;
     private LocalDate expenseDate;
     private String category;
+    private String description;
     private ApprovalStatus status;
     private ApprovalLevel level;
     private String message;

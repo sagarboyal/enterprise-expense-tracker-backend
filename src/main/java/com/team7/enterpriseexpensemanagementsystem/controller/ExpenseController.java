@@ -18,6 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 
 @RestController
@@ -59,6 +60,13 @@ public class ExpenseController {
         ExpenseResponse created = expenseService.addExpense(expenseDTO, authUtil.loggedInEmail());
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
+
+    @PostMapping("/bulk")
+    public ResponseEntity<?> createExpenses(@RequestBody List<ExpenseDTO> expenses) {
+        List<ExpenseDTO> saved = expenseService.saveAll(expenses);
+        return ResponseEntity.ok(saved);
+    }
+
 
     @PutMapping
     public ResponseEntity<ExpenseResponse> updateExpense(@Valid @RequestBody ExpenseUpdateRequest request) {

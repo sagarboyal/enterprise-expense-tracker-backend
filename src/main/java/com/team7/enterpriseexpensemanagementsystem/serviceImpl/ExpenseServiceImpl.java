@@ -73,6 +73,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         Expense expense = modelMapper.map(dto, Expense.class);
         expense.setCategory(category);
         expense.setUser(user);
+        expense.setDescription(dto.getDescription());
 
         Approval approvalRecords = Approval.builder()
                         .userId(user.getId())
@@ -98,6 +99,7 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .title(expense.getTitle())
                 .amount(expense.getAmount())
                 .expenseDate(expense.getExpenseDate())
+                .description(expense.getDescription())
                 .category(category.getName())
                 .status(approvalRecords.getStatus())
                 .level(approvalRecords.getLevel())
@@ -136,6 +138,7 @@ public class ExpenseServiceImpl implements ExpenseService {
                         .title(expense.getTitle())
                         .amount(expense.getAmount())
                         .expenseDate(expense.getExpenseDate())
+                        .description(expense.getDescription())
                         .category(category.getName())
                         .status(latest != null ? latest.getStatus() : null)
                         .level(latest != null ? latest.getLevel() : null)
@@ -147,6 +150,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         expense.setTitle(dto.getTitle() != null ? dto.getTitle() : expense.getTitle());
         expense.setExpenseDate(dto.getExpenseDate() != null ? dto.getExpenseDate() : expense.getExpenseDate());
         expense.setAmount(dto.getAmount() != null ? dto.getAmount() : expense.getAmount());
+        expense.setDescription(dto.getDescription() != null ? dto.getDescription() : expense.getDescription());
         expense.setCategory(category);
         expense = expenseRepository.save(expense);
 
@@ -155,6 +159,7 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .title(expense.getTitle())
                 .amount(expense.getAmount())
                 .expenseDate(expense.getExpenseDate())
+                .description(expense.getDescription())
                 .category(category.getName())
                 .status(latest != null ? latest.getStatus() : null)
                 .level(latest != null ? latest.getLevel() : null)
@@ -187,6 +192,7 @@ public class ExpenseServiceImpl implements ExpenseService {
                         .title(expense.getTitle())
                         .amount(expense.getAmount())
                         .expenseDate(expense.getExpenseDate())
+                        .description(expense.getDescription())
                         .category(category.getName())
                         .status(latest != null ? latest.getStatus() : null)
                         .level(latest != null ? latest.getLevel() : null)
@@ -245,6 +251,7 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .title(expense.getTitle())
                 .amount(expense.getAmount())
                 .expenseDate(expense.getExpenseDate())
+                .description(expense.getDescription())
                 .category(expense.getCategory().getName())
                 .status(latest != null ? latest.getStatus() : null)
                 .level(latest != null ? latest.getLevel() : null)
@@ -385,6 +392,38 @@ public class ExpenseServiceImpl implements ExpenseService {
         PdfExportUtils.exportExpenses("Expense Report", expenseList, response.getOutputStream());
     }
 
+    @Override
+    public List<ExpenseDTO> saveAll(List<ExpenseDTO> expenseDTOs) {
+        List<Expense> expenses = expenseDTOs.stream()
+                .map(this::mapToEntity)
+                .collect(Collectors.toList());
+
+        List<Expense> savedExpenses = expenseRepository.saveAll(expenses);
+
+        return savedExpenses.stream()
+                .map(expense -> modelMapper.map(expense, ExpenseDTO.class))
+                .collect(Collectors.toList());
+    }
+
+    private Expense mapToEntity(ExpenseDTO dto) {
+        Category category = getCategoryById(dto.getCategoryId());
+        Expense expense = modelMapper.map(dto, Expense.class);
+        expense.setCategory(category);
+        expense.setUser(authUtils.loggedInUser());
+        expense.setDescription(dto.getDescription());
+
+        Approval approvalRecords = Approval.builder()
+                .userId(expense.getUser().getId())
+                .level(ApprovalLevel.MANAGER)
+                .status(ApprovalStatus.PENDING)
+                .actionTime(LocalDateTime.now())
+                .comment("Wait for manager approval!")
+                .build();
+        approvalRecords.setExpense(expense);
+        expense.getApprovals().add(approvalRecords);
+        return expenseRepository.save(expense);
+    }
+
     private PagedResponse<ExpenseResponse> getExpensePagedResponse(Page<Expense> expensePage, List<Expense> expenses) {
         List<ExpenseResponse> response = expenses.stream()
                 .map(expense -> {
@@ -414,11 +453,12 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .title(expense.getTitle())
                 .amount(expense.getAmount())
                 .expenseDate(expense.getExpenseDate())
+                .description(expense.getDescription())
                 .category(expense.getCategory().getName())
                 .status(latest != null ? latest.getStatus() : null)
                 .level(latest != null ? latest.getLevel() : null)
                 .message(latest != null ? latest.getComment() : null)
-                .build(); // <- semicolon was missing here
+                .build();
     }
 
     private Category getCategoryById(Long id) {
@@ -478,7 +518,4 @@ public class ExpenseServiceImpl implements ExpenseService {
 
         return approval;
     }
-
-
-
 }

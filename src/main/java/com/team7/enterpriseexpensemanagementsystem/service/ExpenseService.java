@@ -26,5 +26,6 @@ public interface ExpenseService {
             List<ExpenseResponse> expenseList,
             HttpServletResponse response
     ) throws IOException;
+    List<ExpenseDTO> saveAll(List<ExpenseDTO> expenses);
 }
 

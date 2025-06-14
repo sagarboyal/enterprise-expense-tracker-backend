@@ -1,6 +1,7 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
 import com.team7.enterpriseexpensemanagementsystem.entity.Notification;
+import com.team7.enterpriseexpensemanagementsystem.entity.Role;
 import com.team7.enterpriseexpensemanagementsystem.entity.Roles;
 import com.team7.enterpriseexpensemanagementsystem.entity.User;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
@@ -85,13 +86,16 @@ public class AuthController {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
         }
 
-        User user = User.builder()
-                .fullName(signUpRequest.getFullName())
-                .email(signUpRequest.getEmail())
-                .password(passwordEncoder.encode(signUpRequest.getPassword()))
-                .roles(Set.of(roleRepository.findByRoleName(Roles.ROLE_EMPLOYEE)
-                        .orElseThrow(() -> new ResourceNotFoundException("Error: Role does not exist!"))))
-                .build();
+        User user = new User();
+        user.setFullName(signUpRequest.getFullName());
+        user.setEmail(signUpRequest.getEmail());
+        user.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
+
+        Role employeeRole = roleRepository.findByRoleName(Roles.ROLE_EMPLOYEE)
+                .orElseThrow(() -> new ResourceNotFoundException("Error: Role does not exist!"));
+
+        user.setRoles(Set.of(employeeRole));
+
         userRepository.save(user);
 
         notificationService.saveNotification(

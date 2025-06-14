@@ -27,6 +27,7 @@ public class ExpenseDTO {
 
     @PastOrPresent(message = "Expense date cannot be in the future")
     private LocalDate expenseDate;
+    private String description;
 
     @NotNull(message = "Category ID is required")
     private Long categoryId;

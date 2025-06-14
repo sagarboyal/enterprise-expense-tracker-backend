@@ -25,6 +25,7 @@ public class ExpenseUpdateRequest {
 
     @PastOrPresent(message = "Expense date cannot be in the future")
     private LocalDate expenseDate;
+    private String description;
 
     private Long categoryId;
 }
