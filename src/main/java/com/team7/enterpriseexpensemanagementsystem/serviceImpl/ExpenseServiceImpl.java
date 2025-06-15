@@ -30,13 +30,16 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -303,7 +306,17 @@ public class ExpenseServiceImpl implements ExpenseService {
         PagedResponse<ExpenseResponse> expenseResponseList = getExpensePagedResponse(expensePage, expenseList);
         if(export)
             try{
-                exportFilteredExpenses(expenseResponseList.getContent(), response);
+                List<Expense> allFilteredExpenses = expenseRepository.findAll(specs);
+                List<ExpenseResponse> responseList = allFilteredExpenses.stream().map(
+                        expense ->{
+                            List<Approval> approvals = expense.getApprovals();
+                            Approval latest = approvals != null && !approvals.isEmpty()
+                                    ? approvals.get(approvals.size() - 1)
+                                    : null;
+                            return getExpenseResponseWithLatestApproval(expense, latest);
+                        }
+                ).toList();
+                exportFilteredExpenses(responseList, response);
             }catch(Exception e){
                 System.out.println(e.getMessage());
             }
@@ -360,11 +373,10 @@ public class ExpenseServiceImpl implements ExpenseService {
         totalExpenses = (totalExpenses == null) ? 0.0 : totalExpenses;
 
         LocalDate now = LocalDate.now();
-        int month = now.getMonthValue();
-        int year = now.getYear();
 
-        Long approvedCount = expenseRepository.countApprovedThisMonth(id, month, year);
+        Long approvedCount = expenseRepository.countApprovedExpenses(id);
         Long pendingCount = expenseRepository.countPendingApprovals(id);
+        Long rejectedCount = expenseRepository.countRejectedExpenses(id);
 
         List<StatusExpenseDTO> rawStatusList = getStatusAnalytics(id, now.withDayOfMonth(1), now.withDayOfMonth(now.lengthOfMonth()));
 
@@ -378,7 +390,7 @@ public class ExpenseServiceImpl implements ExpenseService {
 
 
         // Build and return combined DTO
-        return new SummaryDTO(totalExpenses, approvedCount, pendingCount, mappedStatusList);
+        return new SummaryDTO(totalExpenses, approvedCount, pendingCount, rejectedCount, mappedStatusList);
     }
 
     @Override
@@ -403,6 +415,37 @@ public class ExpenseServiceImpl implements ExpenseService {
         return savedExpenses.stream()
                 .map(expense -> modelMapper.map(expense, ExpenseDTO.class))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Approval> getApprovalStack(Long expenseId) {
+        Expense expense = expenseRepository.findById(expenseId).
+                orElseThrow(() -> new ApiException("Expense not found"));
+        return expense.getApprovals();
+    }
+
+    @Override
+    public List<WeeklyExpenseDTO> getWeeklyAnalytics() {
+            LocalDate today = LocalDate.now();
+            LocalDate startOfWeek = today.with(DayOfWeek.MONDAY);
+
+            List<Object[]> results = expenseRepository.findTotalByDayOfWeek(startOfWeek, today);
+
+            Map<String, Double> dayMap = new LinkedHashMap<>();
+            for (int i = 0; i < 7; i++) {
+                LocalDate date = startOfWeek.plusDays(i);
+                dayMap.put(date.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH), 0.0);
+            }
+
+            for (Object[] row : results) {
+                String day = (String) row[0];
+                Double total = (Double) row[1];
+                dayMap.put(day, total);
+            }
+
+            return dayMap.entrySet().stream()
+                    .map(entry -> new WeeklyExpenseDTO(entry.getKey(), entry.getValue()))
+                    .collect(Collectors.toList());
     }
 
     private Expense mapToEntity(ExpenseDTO dto) {

@@ -2,6 +2,8 @@ package com.team7.enterpriseexpensemanagementsystem.controller;
 
 import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
 import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
+import com.team7.enterpriseexpensemanagementsystem.entity.Approval;
+import com.team7.enterpriseexpensemanagementsystem.entity.ApprovalStatus;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ApprovalRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ExpenseUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
@@ -87,5 +89,11 @@ public class ExpenseController {
         expenseService.deleteExpense(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/approval-stack/{id}")
+    public ResponseEntity<List<Approval>> getApprovalStack(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(expenseService.getApprovalStack(id));
+    }
+
 }
 

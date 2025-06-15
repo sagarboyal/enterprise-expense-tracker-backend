@@ -1,6 +1,8 @@
 package com.team7.enterpriseexpensemanagementsystem.service;
 
 import com.team7.enterpriseexpensemanagementsystem.dto.*;
+import com.team7.enterpriseexpensemanagementsystem.entity.Approval;
+import com.team7.enterpriseexpensemanagementsystem.entity.ApprovalStatus;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ApprovalRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ExpenseUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
@@ -27,5 +29,7 @@ public interface ExpenseService {
             HttpServletResponse response
     ) throws IOException;
     List<ExpenseDTO> saveAll(List<ExpenseDTO> expenses);
+    List<Approval> getApprovalStack(Long expenseId);
+    List<WeeklyExpenseDTO> getWeeklyAnalytics();
 }
 

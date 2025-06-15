@@ -1,6 +1,5 @@
 package com.team7.enterpriseexpensemanagementsystem.repository;
 
-import com.team7.enterpriseexpensemanagementsystem.dto.StatusExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.entity.Expense;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -77,12 +76,23 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
           WHERE a2.expense.id = e.id
       )
       AND a.status = com.team7.enterpriseexpensemanagementsystem.entity.ApprovalStatus.APPROVED
-      AND FUNCTION('MONTH', e.expenseDate) = :month
-      AND FUNCTION('YEAR', e.expenseDate) = :year
 """)
-    Long countApprovedThisMonth(@Param("userId") Long userId,
-                                @Param("month") int month,
-                                @Param("year") int year);
+    Long countApprovedExpenses(@Param("userId") Long userId);
+
+    @Query("""
+    SELECT COUNT(e)
+    FROM Expense e
+    JOIN e.approvals a
+    WHERE e.user.id = :userId
+      AND a.actionTime = (
+          SELECT MAX(a2.actionTime)
+          FROM Approval a2
+          WHERE a2.expense.id = e.id
+      )
+      AND a.status = com.team7.enterpriseexpensemanagementsystem.entity.ApprovalStatus.REJECTED
+""")
+    Long countRejectedExpenses(@Param("userId") Long userId);
+
 
 
     @Query("""
@@ -98,4 +108,16 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
       AND a.status = com.team7.enterpriseexpensemanagementsystem.entity.ApprovalStatus.PENDING
 """)
     Long countPendingApprovals(@Param("userId") Long userId);
+
+    @Query("""
+    SELECT FUNCTION('DAYNAME', e.expenseDate), SUM(e.amount), FUNCTION('DAYOFWEEK', e.expenseDate)
+    FROM Expense e
+    WHERE e.expenseDate BETWEEN :start AND :end
+    GROUP BY FUNCTION('DAYNAME', e.expenseDate), FUNCTION('DAYOFWEEK', e.expenseDate)
+    ORDER BY FUNCTION('DAYOFWEEK', e.expenseDate)
+""")
+    List<Object[]> findTotalByDayOfWeek(@Param("start") LocalDate start,
+                                        @Param("end") LocalDate end);
+
+
 }

@@ -12,5 +12,6 @@ public class SummaryDTO {
     private Double totalExpenses;
     private Long approvedCountThisMonth;
     private Long pendingApprovals;
+    private Long rejectedExpenses;
     private List<StatusExpenseDTO> statusAnalytics;
 }

@@ -1,9 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
-import com.team7.enterpriseexpensemanagementsystem.dto.CategoryExpenseDTO;
-import com.team7.enterpriseexpensemanagementsystem.dto.MonthlyExpenseDTO;
-import com.team7.enterpriseexpensemanagementsystem.dto.StatusExpenseDTO;
-import com.team7.enterpriseexpensemanagementsystem.dto.SummaryDTO;
+import com.team7.enterpriseexpensemanagementsystem.dto.*;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +28,12 @@ public class AnalyticsController {
     ) {
         return ResponseEntity.ok(expenseService.getMonthlyAnalytics(authUtils.loggedInUser().getId(), startDate, endDate));
     }
+
+    @GetMapping("/weekly")
+    public ResponseEntity<List<WeeklyExpenseDTO>> getMonthlyExpenses() {
+        return ResponseEntity.ok(expenseService.getWeeklyAnalytics());
+    }
+
     @GetMapping("/category")
     public ResponseEntity<List<CategoryExpenseDTO>> getCategoryExpenses(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
