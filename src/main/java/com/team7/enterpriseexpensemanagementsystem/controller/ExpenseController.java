@@ -3,7 +3,6 @@ package com.team7.enterpriseexpensemanagementsystem.controller;
 import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
 import com.team7.enterpriseexpensemanagementsystem.dto.ExpenseDTO;
 import com.team7.enterpriseexpensemanagementsystem.entity.Approval;
-import com.team7.enterpriseexpensemanagementsystem.entity.ApprovalStatus;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ApprovalRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ExpenseUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
@@ -41,6 +40,7 @@ public class ExpenseController {
             @RequestParam(name = "title", required = false) String title,
             @RequestParam(name = "categoryName", required = false) String categoryName,
             @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "level", required = false) String level,
             @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(name = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(name = "minAmount", required = false) Double minAmount,
@@ -52,8 +52,32 @@ public class ExpenseController {
             @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
             HttpServletResponse response
     ) {
-        return ResponseEntity.ok(expenseService.getFilteredExpenses(title, categoryName, status, startDate, endDate, minAmount, maxAmount,
+        return ResponseEntity.ok(expenseService.getFilteredExpenses(title, categoryName, status, level, startDate, endDate, minAmount, maxAmount,
                 authUtil.loggedInUser().getId(),
+                pageNumber, pageSize, sortBy, sortOrder, export, response));
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
+    @GetMapping("/request-list")
+    public ResponseEntity<PagedResponse<ExpenseResponse>> getAllExpenses(
+            @RequestParam(name = "userId", required = false) Long userId,
+            @RequestParam(name = "title", required = false) String title,
+            @RequestParam(name = "categoryName", required = false) String categoryName,
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "level", required = false) String level,
+            @RequestParam(name = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(name = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(name = "minAmount", required = false) Double minAmount,
+            @RequestParam(name = "maxAmount", required = false) Double maxAmount,
+            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder,
+            @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
+            HttpServletResponse response
+    ) {
+        return ResponseEntity.ok(expenseService.getFilteredExpenses(title, categoryName, status, level, startDate, endDate, minAmount, maxAmount,
+                userId,
                 pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
 

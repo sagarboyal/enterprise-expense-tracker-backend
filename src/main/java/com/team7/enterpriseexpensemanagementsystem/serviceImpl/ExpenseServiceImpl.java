@@ -77,14 +77,13 @@ public class ExpenseServiceImpl implements ExpenseService {
         expense.setCategory(category);
         expense.setUser(user);
         expense.setDescription(dto.getDescription());
-
         Approval approvalRecords = Approval.builder()
-                        .userId(user.getId())
-                        .level(ApprovalLevel.MANAGER)
-                        .status(ApprovalStatus.PENDING)
-                        .actionTime(LocalDateTime.now())
-                        .comment("Wait for manager approval!")
-                        .build();
+                .userId(user.getId())
+                .level(ApprovalLevel.MANAGER)
+                .status(ApprovalStatus.PENDING)
+                .actionTime(LocalDateTime.now())
+                .comment("Wait for manager approval!")
+                .build();
 
         if(dto.getExpenseDate() == null) {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -102,7 +101,6 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .title(expense.getTitle())
                 .amount(expense.getAmount())
                 .expenseDate(expense.getExpenseDate())
-                .description(expense.getDescription())
                 .category(category.getName())
                 .status(approvalRecords.getStatus())
                 .level(approvalRecords.getLevel())
@@ -136,17 +134,7 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .entityId(expense.getId())
                 .action("UPDATED")
                 .performedBy(authUtils.loggedInEmail())
-                .oldValue(mapperUtils.convertToJson(ExpenseResponse.builder()
-                        .id(expense.getId())
-                        .title(expense.getTitle())
-                        .amount(expense.getAmount())
-                        .expenseDate(expense.getExpenseDate())
-                        .description(expense.getDescription())
-                        .category(category.getName())
-                        .status(latest != null ? latest.getStatus() : null)
-                        .level(latest != null ? latest.getLevel() : null)
-                        .message(latest != null ? latest.getComment() : null)
-                        .build()))
+                .oldValue(mapperUtils.convertToJson(getExpenseResponseWithLatestApproval(expense, latest)))
                 .newValue("")
                 .build();
 
@@ -157,17 +145,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         expense.setCategory(category);
         expense = expenseRepository.save(expense);
 
-        ExpenseResponse response = ExpenseResponse.builder()
-                .id(expense.getId())
-                .title(expense.getTitle())
-                .amount(expense.getAmount())
-                .expenseDate(expense.getExpenseDate())
-                .description(expense.getDescription())
-                .category(category.getName())
-                .status(latest != null ? latest.getStatus() : null)
-                .level(latest != null ? latest.getLevel() : null)
-                .message(latest != null ? latest.getComment() : null)
-                .build();
+        ExpenseResponse response = getExpenseResponseWithLatestApproval(expense, latest);
         auditLog.setNewValue(mapperUtils.convertToJson(response));
         auditLogService.log(auditLog);
         return response;
@@ -190,17 +168,7 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .action("DELETED")
                 .performedBy(authUtils.loggedInEmail())
                 .oldValue("")
-                .newValue(mapperUtils.convertToJson(ExpenseResponse.builder()
-                        .id(expense.getId())
-                        .title(expense.getTitle())
-                        .amount(expense.getAmount())
-                        .expenseDate(expense.getExpenseDate())
-                        .description(expense.getDescription())
-                        .category(category.getName())
-                        .status(latest != null ? latest.getStatus() : null)
-                        .level(latest != null ? latest.getLevel() : null)
-                        .message(latest != null ? latest.getComment() : null)
-                        .build()))
+                .newValue(mapperUtils.convertToJson(getExpenseResponseWithLatestApproval(expense, latest)))
                 .build());
     }
 
@@ -254,7 +222,6 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .title(expense.getTitle())
                 .amount(expense.getAmount())
                 .expenseDate(expense.getExpenseDate())
-                .description(expense.getDescription())
                 .category(expense.getCategory().getName())
                 .status(latest != null ? latest.getStatus() : null)
                 .level(latest != null ? latest.getLevel() : null)
@@ -284,11 +251,12 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
-    public PagedResponse<ExpenseResponse> getFilteredExpenses(String title, String categoryName, String status, LocalDate startDate, LocalDate endDate, Double minAmount, Double maxAmount, Long userId,
+    public PagedResponse<ExpenseResponse> getFilteredExpenses(String title, String categoryName, String status, String level, LocalDate startDate, LocalDate endDate, Double minAmount, Double maxAmount, Long userId,
                                              Integer pageNumber, Integer pageSize, String sortBy, String sortOrder,
                                                               Boolean export, HttpServletResponse response) {
-        Specification<Expense> specs = Specification.where(ExpenseSpecification.hasStatus(convertStatus(status)))
-                .and(ExpenseSpecification.hasCategory(categoryName))
+        Specification<Expense> specs = Specification.where(ExpenseSpecification.hasCategory(categoryName))
+                .and(ExpenseSpecification.hasStatus(convertStatus(status)))
+                .and(ExpenseSpecification.hasLevel(convertLevel(level)))
                 .and(ExpenseSpecification.expenseDateBetween(startDate, endDate))
                 .and(ExpenseSpecification.amountBetween(minAmount, maxAmount))
                 .and(ExpenseSpecification.user(userId))
@@ -326,15 +294,24 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     private ApprovalStatus convertStatus(String status) {
-        if (status == null || status.isEmpty()) return null;
+        if (status == null || status.isEmpty()) return ApprovalStatus.PENDING;;
+        System.out.println("Filtering by status: " + status);
+
         return switch (status.toLowerCase()) {
-            case "pending" -> ApprovalStatus.PENDING;
             case "approved" -> ApprovalStatus.APPROVED;
             case "rejected" -> ApprovalStatus.REJECTED;
-            default -> null;
+            default -> ApprovalStatus.PENDING;
         };
     }
 
+    private ApprovalLevel convertLevel(String level) {
+        if (level == null || level.isEmpty()) return null;
+        return switch (level.toLowerCase()) {
+            case "manager" -> ApprovalLevel.MANAGER;
+            case "admin" -> ApprovalLevel.ADMIN;
+            default -> null;
+        };
+    }
 
     @Override
     public List<MonthlyExpenseDTO> getMonthlyAnalytics(Long id, LocalDate startDate, LocalDate endDate) {
@@ -493,6 +470,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     private ExpenseResponse getExpenseResponseWithLatestApproval(Expense expense, Approval latest) {
         return ExpenseResponse.builder()
                 .id(expense.getId())
+                .userId(expense.getUser().getId())
                 .title(expense.getTitle())
                 .amount(expense.getAmount())
                 .expenseDate(expense.getExpenseDate())

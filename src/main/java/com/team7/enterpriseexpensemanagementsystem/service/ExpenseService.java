@@ -2,7 +2,6 @@ package com.team7.enterpriseexpensemanagementsystem.service;
 
 import com.team7.enterpriseexpensemanagementsystem.dto.*;
 import com.team7.enterpriseexpensemanagementsystem.entity.Approval;
-import com.team7.enterpriseexpensemanagementsystem.entity.ApprovalStatus;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ApprovalRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ExpenseUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
@@ -19,7 +18,7 @@ public interface ExpenseService {
     void deleteExpense(Long id);
     ExpenseResponse getExpenseByExpenseId(Long id);
     ExpenseResponse updateExpenseStatus(Long id, ApprovalRequest approvalRequest, String email);
-    PagedResponse<ExpenseResponse> getFilteredExpenses(String title, String categoryName, String status, LocalDate startDate, LocalDate endDate, Double minAmount, Double maxAmount, Long userId, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, Boolean export, HttpServletResponse response);
+    PagedResponse<ExpenseResponse> getFilteredExpenses(String title, String categoryName, String status, String level, LocalDate startDate, LocalDate endDate, Double minAmount, Double maxAmount, Long userId, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, Boolean export, HttpServletResponse response);
     List<MonthlyExpenseDTO> getMonthlyAnalytics(Long id, LocalDate startDate, LocalDate endDate);
     List<CategoryExpenseDTO> getCategoryAnalytics(Long id, LocalDate startDate, LocalDate endDate);
     List<StatusExpenseDTO> getStatusAnalytics(Long id, LocalDate startDate, LocalDate endDate);

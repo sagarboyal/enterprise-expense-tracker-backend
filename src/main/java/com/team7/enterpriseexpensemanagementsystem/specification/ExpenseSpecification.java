@@ -1,5 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.specification;
 
+import com.team7.enterpriseexpensemanagementsystem.entity.ApprovalLevel;
 import com.team7.enterpriseexpensemanagementsystem.entity.ApprovalStatus;
 import com.team7.enterpriseexpensemanagementsystem.entity.Expense;
 import org.springframework.data.jpa.domain.Specification;
@@ -9,10 +10,7 @@ import java.time.LocalDate;
 public class ExpenseSpecification {
 
     public static Specification<Expense> hasStatus(ApprovalStatus status) {
-        return (root, query, cb) -> {
-            if (status == null) return cb.conjunction();
-            return cb.equal(root.get("status"), status);
-        };
+        return (root, query, cb) -> cb.equal(root.get("approvals").get("status"), status == null ? ApprovalStatus.PENDING : status);
 
     }
 
@@ -49,5 +47,12 @@ public class ExpenseSpecification {
         return (root, query, cb) ->
                 title == null ? cb.conjunction() :
                 cb.like(root.get("title"), "%"+title+"%");
+    }
+
+    public static Specification<Expense> hasLevel(ApprovalLevel approvalLevel) {
+        return (root, query, cb) -> {
+            if (approvalLevel == null) return cb.conjunction();
+            return cb.equal(root.get("approvals").get("level"), approvalLevel);
+        };
     }
 }
