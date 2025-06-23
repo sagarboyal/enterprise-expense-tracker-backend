@@ -14,6 +14,7 @@ import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.AuditLogService;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
+import com.team7.enterpriseexpensemanagementsystem.service.InvoiceService;
 import com.team7.enterpriseexpensemanagementsystem.service.NotificationService;
 import com.team7.enterpriseexpensemanagementsystem.specification.ExpenseSpecification;
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
@@ -54,8 +55,9 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final ObjectMapperUtils mapperUtils;
     private final NotificationService notificationService;
     private final ApprovalRepository approvalRepository;
+    private final InvoiceService invoiceService;
 
-    public ExpenseServiceImpl(ExpenseRepository expenseRepository, CategoryRepository categoryRepository, ModelMapper modelMapper, UserRepository userRepository, AuditLogService auditLogService, AuthUtils authUtils, ObjectMapperUtils objectMapperUtils, NotificationService notificationService, ApprovalRepository approvalRepository) {
+    public ExpenseServiceImpl(ExpenseRepository expenseRepository, CategoryRepository categoryRepository, ModelMapper modelMapper, UserRepository userRepository, AuditLogService auditLogService, AuthUtils authUtils, ObjectMapperUtils objectMapperUtils, NotificationService notificationService, ApprovalRepository approvalRepository, InvoiceService invoiceService) {
         this.expenseRepository = expenseRepository;
         this.categoryRepository = categoryRepository;
         this.modelMapper = modelMapper;
@@ -65,6 +67,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         this.mapperUtils = objectMapperUtils;
         this.notificationService = notificationService;
         this.approvalRepository = approvalRepository;
+        this.invoiceService = invoiceService;
     }
 
     @Override
@@ -236,6 +239,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         String message;
         if (approvalRequest.getDecision().equalsIgnoreCase("approve")) {
             if (UserUtils.isAdmin(user)) {
+                invoiceService.generateInvoice(expense.getUser(), expense);
                 message = "🎉 Congratulations! Your expense with ID " + expense.getId() + " has been approved by Admin.";
             } else if (UserUtils.isManager(user)) {
                 message = "✅ Your expense with ID " + expense.getId() + " has been approved by Manager. Please wait for Admin approval.";

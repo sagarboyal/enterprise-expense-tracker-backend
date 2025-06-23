@@ -6,6 +6,7 @@ import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseRespo
 import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.AuditLogService;
 import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
+import com.team7.enterpriseexpensemanagementsystem.service.InvoiceService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -19,6 +20,7 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class AdminController {
     private final AuditLogService auditLogService;
+    private final InvoiceService invoiceService;
 
     @GetMapping("/audit-log")
     public ResponseEntity<PagedResponse<AuditLog>> getAuditLogs(
@@ -37,5 +39,16 @@ public class AdminController {
     ){
         return ResponseEntity.ok(auditLogService.findAll(auditId, entityName, entityId, deviceIp, action, performedBy,
                 startDate, endDate, pageNumber, pageSize, sortBy, sortOrder));
+    }
+
+    @GetMapping("/users/{userId}/invoice/download")
+    public ResponseEntity<Void> downloadInvoice(@PathVariable Long userId, HttpServletResponse response) {
+        invoiceService.exportInvoice(userId, response);
+        return ResponseEntity.ok().build();
+    }
+    @GetMapping("/invoice/{userId}")
+    public ResponseEntity<String> sendInvoice(@PathVariable Long userId, HttpServletResponse response) {
+        invoiceService.sendInvoice(userId, response);
+        return ResponseEntity.ok("Mail Sent!");
     }
 }
