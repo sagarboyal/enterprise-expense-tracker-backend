@@ -6,6 +6,7 @@ import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundExc
 import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.FileDocumentRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.FileStorageService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -15,8 +16,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/document")
@@ -35,6 +38,16 @@ public class DocumentController {
 
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found with ID: " + expenseId));
+
+        Optional<FileDocument> existingDocOpt = fileDocumentRepository.findByExpenseId(expenseId);
+        existingDocOpt.ifPresent(existingDoc -> {
+            try {
+                fileStorageService.deleteFile(existingDoc.getFileName());
+                fileDocumentRepository.delete(existingDoc);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to delete existing file: " + e.getMessage());
+            }
+        });
 
         String fileName;
         try {
@@ -56,14 +69,40 @@ public class DocumentController {
         return ResponseEntity.ok("Uploaded: " + fileName);
     }
 
-    @GetMapping("/download/{fileName}")
+
+    @GetMapping("/view/{fileName:.+}")
+    public ResponseEntity<Resource> viewFile(@PathVariable String fileName, HttpServletRequest request) throws MalformedURLException {
+        Resource resource = fileStorageService.loadFileAsResource(fileName);
+
+        // Try to determine file's content type
+        String contentType = null;
+        try {
+            contentType = request.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
+        } catch (IOException ex) {
+            contentType = "application/octet-stream"; // fallback
+        }
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
+                .body(resource);
+    }
+
+
+    @GetMapping("/download/{fileName:.+}")
     public ResponseEntity<Resource> downloadFile(@PathVariable String fileName) throws MalformedURLException {
         Resource resource = fileStorageService.loadFileAsResource(fileName);
+
         return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + resource.getFilename() + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
                 .body(resource);
+    }
+
+    @GetMapping("/{expenseId:.+}")
+    public ResponseEntity<FileDocument> downloadFile(@PathVariable Long expenseId){
+        return ResponseEntity.ok()
+                .body(fileDocumentRepository.findByExpenseId(expenseId)
+                        .orElse(null));
     }
 }
 

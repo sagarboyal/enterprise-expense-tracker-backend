@@ -77,4 +77,11 @@ public class FileStorageServiceImpl implements FileStorageService {
             throw new ApiException("Could not load file: " + fileName, e);
         }
     }
+
+    @Override
+    public void deleteFile(String fileName) throws IOException {
+        Path filePath = this.fileStorageLocation.resolve(fileName).normalize();
+        Files.deleteIfExists(filePath);
+    }
+
 }
