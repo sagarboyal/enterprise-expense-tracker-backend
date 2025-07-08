@@ -1,8 +1,12 @@
 package com.team7.enterpriseexpensemanagementsystem.specification;
 
+import com.team7.enterpriseexpensemanagementsystem.entity.Approval;
 import com.team7.enterpriseexpensemanagementsystem.entity.ApprovalLevel;
 import com.team7.enterpriseexpensemanagementsystem.entity.ApprovalStatus;
 import com.team7.enterpriseexpensemanagementsystem.entity.Expense;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
@@ -55,4 +59,27 @@ public class ExpenseSpecification {
             return cb.equal(root.get("approvals").get("level"), approvalLevel);
         };
     }
+
+    public static Specification<Expense> excludeAdminApprovedIfManagerLevel(String status, String level) {
+        return (root, query, cb) -> {
+            if (!"APPROVED".equalsIgnoreCase(status) || !"MANAGER".equalsIgnoreCase(level)) {
+                return cb.conjunction();
+            }
+
+            Subquery<Long> maxIdSubquery = query.subquery(Long.class);
+            Root<Approval> maxRoot = maxIdSubquery.from(Approval.class);
+            Path<Long> approvalIdPath = maxRoot.get("id");
+            maxIdSubquery.select(cb.greatest(approvalIdPath))
+                    .where(cb.equal(maxRoot.get("expense").get("id"), root.get("id")));
+
+            Subquery<String> levelSubquery = query.subquery(String.class);
+            Root<Approval> levelRoot = levelSubquery.from(Approval.class);
+            levelSubquery.select(levelRoot.get("level"))
+                    .where(cb.equal(levelRoot.get("id"), maxIdSubquery));
+
+            return cb.notEqual(levelSubquery, ApprovalLevel.ADMIN.toString());
+        };
+    }
+
+
 }

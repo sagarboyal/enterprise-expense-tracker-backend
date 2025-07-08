@@ -264,7 +264,8 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .and(ExpenseSpecification.expenseDateBetween(startDate, endDate))
                 .and(ExpenseSpecification.amountBetween(minAmount, maxAmount))
                 .and(ExpenseSpecification.user(userId))
-                .and(ExpenseSpecification.hasTitle(title));
+                .and(ExpenseSpecification.hasTitle(title))
+                .and(ExpenseSpecification.excludeAdminApprovedIfManagerLevel(status, level));
 
 
 
