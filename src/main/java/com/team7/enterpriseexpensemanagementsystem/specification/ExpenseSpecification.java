@@ -66,6 +66,7 @@ public class ExpenseSpecification {
                 return cb.conjunction();
             }
 
+            assert query != null;
             Subquery<Long> maxIdSubquery = query.subquery(Long.class);
             Root<Approval> maxRoot = maxIdSubquery.from(Approval.class);
             Path<Long> approvalIdPath = maxRoot.get("id");
@@ -81,5 +82,28 @@ public class ExpenseSpecification {
         };
     }
 
+    public static Specification<Expense> onlyPendingForManagerLevel(String status, String level) {
+        return (root, query, cb) -> {
+            if (!"PENDING".equalsIgnoreCase(status) || !"MANAGER".equalsIgnoreCase(level)) {
+                return cb.conjunction();
+            }
+
+            // Subquery to get latest approval ID per expense
+            assert query != null;
+            Subquery<Long> maxIdSubquery = query.subquery(Long.class);
+            Root<Approval> maxRoot = maxIdSubquery.from(Approval.class);
+            maxIdSubquery.select(cb.greatest(maxRoot.<Long>get("id")))
+                    .where(cb.equal(maxRoot.get("expense").get("id"), root.get("id")));
+
+            // Subquery to get status of the latest approval
+            Subquery<String> statusSubquery = query.subquery(String.class);
+            Root<Approval> statusRoot = statusSubquery.from(Approval.class);
+            statusSubquery.select(statusRoot.get("status"))
+                    .where(cb.equal(statusRoot.get("id"), maxIdSubquery));
+
+            // Only include if latest status is still PENDING
+            return cb.equal(statusSubquery, "PENDING");
+        };
+    }
 
 }

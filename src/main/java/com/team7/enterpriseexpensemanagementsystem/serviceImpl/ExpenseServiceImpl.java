@@ -265,8 +265,8 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .and(ExpenseSpecification.amountBetween(minAmount, maxAmount))
                 .and(ExpenseSpecification.user(userId))
                 .and(ExpenseSpecification.hasTitle(title))
-                .and(ExpenseSpecification.excludeAdminApprovedIfManagerLevel(status, level));
-
+                .and(ExpenseSpecification.excludeAdminApprovedIfManagerLevel(status, level))
+                .and(ExpenseSpecification.onlyPendingForManagerLevel(status, level));
 
 
         Sort sort = sortOrder.equalsIgnoreCase("asc")
