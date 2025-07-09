@@ -8,10 +8,7 @@ import com.team7.enterpriseexpensemanagementsystem.payload.request.UserRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.UserUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.UserResponse;
-import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
-import com.team7.enterpriseexpensemanagementsystem.repository.PasswordResetTokenRepository;
-import com.team7.enterpriseexpensemanagementsystem.repository.RoleRepository;
-import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
+import com.team7.enterpriseexpensemanagementsystem.repository.*;
 import com.team7.enterpriseexpensemanagementsystem.service.AuditLogService;
 import com.team7.enterpriseexpensemanagementsystem.service.EmailService;
 import com.team7.enterpriseexpensemanagementsystem.service.NotificationService;
@@ -20,6 +17,7 @@ import com.team7.enterpriseexpensemanagementsystem.specification.UserSpecificati
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
 import com.team7.enterpriseexpensemanagementsystem.utils.ObjectMapperUtils;
 import com.team7.enterpriseexpensemanagementsystem.utils.UserUtils;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,6 +40,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final NotificationService notificationService;
+    private final ApprovalRepository approvalRepository;
+    private final NotificationRepository notificationRepository;
+    private final InvoiceRepository invoiceRepository;
     @Value("${frontend.url}")
     private String frontEndUrl;
 
@@ -129,20 +130,37 @@ public class UserServiceImpl implements UserService {
         return getUserById(oldUser.getId());
     }
 
+    @Transactional
     @Override
     public void deleteUser(Long id) {
         User data = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User Not Found with id: " + id));
 
+        String oldUserJson = mapperUtils.convertToJson(getUserById(id));
         auditLogService.log(AuditLog.builder()
                 .entityName("user")
-                .entityId(data.getId())
+                .entityId(id)
                 .action("DELETED")
                 .performedBy(authUtils.loggedInEmail())
-                .oldValue("")
-                .newValue(mapperUtils.convertToJson(getUserById(data.getId())))
+                .oldValue(oldUserJson)
+                .newValue(null)
                 .build());
+
+        for (Expense expense : data.getExpenses()) {
+            expense.getApprovals().clear();
+            expenseRepository.delete(expense);
+        }
+
+
+        passwordResetTokenRepository.deleteByUserId(id);
+        invoiceRepository.deleteByUserId(id);
+
+        data.getExpenses().clear();
+        data.getNotifications().clear();
+        userRepository.delete(data);
     }
+
+
 
     @Override
     public PagedResponse<UserResponse> getAllUsers(String name, String email, String role, Double minAmount, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {

@@ -120,4 +120,5 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
                                         @Param("end") LocalDate end);
 
 
+    void deleteByUserId(Long userId);
 }

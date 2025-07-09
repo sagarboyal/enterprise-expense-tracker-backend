@@ -12,4 +12,5 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     Invoice findByUserIdAndStatus(Long userId, InvoiceStatus status);
     Optional<Invoice> findTopByUserIdAndStatusOrderByGeneratedAtDesc(Long userId, InvoiceStatus status);
 
+    void deleteByUserId(Long userId);
 }

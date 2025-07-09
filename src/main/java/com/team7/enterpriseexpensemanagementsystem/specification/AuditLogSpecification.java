@@ -13,7 +13,7 @@ public class AuditLogSpecification {
     }
 
     public static Specification<AuditLog> hasEntityName(String name) {
-        return (root, query, criteriaBuilder) -> name == null ?
+        return (root, query, criteriaBuilder) -> name == null ||  name.isEmpty() ?
                 criteriaBuilder.conjunction() : criteriaBuilder.equal(root.get("entityName"), name);
     }
 
@@ -22,17 +22,17 @@ public class AuditLogSpecification {
                 criteriaBuilder.conjunction() : criteriaBuilder.equal(root.get("entityId"), entityId);
     }
     public static Specification<AuditLog> hasDeviceIp(String deviceIp) {
-        return (root, query, criteriaBuilder) ->  deviceIp == null ?
+        return (root, query, criteriaBuilder) ->  deviceIp == null || deviceIp.isEmpty() ?
                 criteriaBuilder.conjunction() : criteriaBuilder.equal(root.get("deviceIp"), deviceIp);
     }
 
     public static Specification<AuditLog> hasAction(String action) {
-        return (root, query, criteriaBuilder) ->  action == null ?
+        return (root, query, criteriaBuilder) ->  action == null || action.isEmpty() ?
                 criteriaBuilder.conjunction() : criteriaBuilder.equal(root.get("action"), action.toUpperCase());
     }
 
     public static Specification<AuditLog> CreatedBy(String createdBy) {
-        return (root, query, criteriaBuilder) ->  createdBy == null ?
+        return (root, query, criteriaBuilder) ->  createdBy == null ||  createdBy.isEmpty() ?
                 criteriaBuilder.conjunction() : criteriaBuilder.like(root.get("performedBy"), '%' + createdBy +'%');
     }
 
