@@ -1,5 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,6 +30,7 @@ public class Invoice {
     @ManyToOne
     private User user;
 
+    @JsonIgnore
     @OneToMany
     @JoinTable(
             name = "invoice_expenses",

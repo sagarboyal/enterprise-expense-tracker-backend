@@ -5,5 +5,6 @@ public class AppConstants {
     public static final String PAGE_SIZE = "10";
     public static final String DEFAULT_SORT_BY_CATEGORY = "id";
     public static final String DEFAULT_SORT_BY_EXPENSES = "id";
+    public static final String DEFAULT_SORT_BY_INVOICE = "id";
     public static final String SORT_DIR = "asc";
 }

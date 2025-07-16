@@ -46,15 +46,13 @@ public class EmailServiceImpl implements EmailService {
                 Invoice Number: %s
                 Generated At: %s
                 Total Amount: ₹%.2f
-                Status: %s
 
                 Thank you for using Trex Expense Manager.
                 """,
                     invoice.getUser().getFullName(),
                     invoice.getInvoiceNumber(),
                     invoice.getGeneratedAt().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")),
-                    invoice.getTotalAmount(),
-                    invoice.getStatus().name()
+                    invoice.getTotalAmount()
             );
             helper.setText(body);
 
