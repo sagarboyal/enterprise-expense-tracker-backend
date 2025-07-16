@@ -2,7 +2,6 @@ package com.team7.enterpriseexpensemanagementsystem.controller;
 
 import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
 import com.team7.enterpriseexpensemanagementsystem.entity.Invoice;
-import com.team7.enterpriseexpensemanagementsystem.entity.User;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.RoleUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.UserRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.UserUpdateRequest;
@@ -18,8 +17,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -103,10 +100,11 @@ public class UserController {
     }
 
     @GetMapping("/invoices/{invoiceId}/export")
-    public ResponseEntity<Void> downloadInvoiceById(@PathVariable Long invoiceId, HttpServletResponse response) {
-        invoiceService.exportInvoiceById(invoiceId, response);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<String> downloadInvoiceById(@PathVariable Long invoiceId, HttpServletResponse response) {
+        Invoice invoice = invoiceService.exportInvoiceById(invoiceId, response);
+        return ResponseEntity.ok("Invoice #" + invoice.getInvoiceNumber() + " has been exported successfully as a PDF.");
     }
+
 
     @GetMapping("/invoices/{invoiceId}/view")
     public void viewInvoice(@PathVariable Long invoiceId, HttpServletResponse response) {
