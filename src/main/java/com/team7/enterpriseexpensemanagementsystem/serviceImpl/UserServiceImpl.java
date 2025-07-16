@@ -40,12 +40,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final NotificationService notificationService;
-    private final ApprovalRepository approvalRepository;
-    private final NotificationRepository notificationRepository;
     private final InvoiceRepository invoiceRepository;
-    @Value("${frontend.url}")
-    private String frontEndUrl;
-
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final ModelMapper modelMapper;
@@ -56,6 +51,8 @@ public class UserServiceImpl implements UserService {
     private final ObjectMapperUtils mapperUtils;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
+    @Value("${frontend.url}")
+    private String frontEndUrl;
 
     @Override
     public UserResponse createUser(UserRequest request) {

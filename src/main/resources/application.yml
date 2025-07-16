@@ -28,8 +28,12 @@ spring:
       mail:
         smtp:
           auth: true
-        starttls:
-          enable: true
+          starttls:
+            enable: true
+        transport:
+          protocol: smtp
+        debug: true
+
 
 frontend:
   url: ${FRONT_END_URL}

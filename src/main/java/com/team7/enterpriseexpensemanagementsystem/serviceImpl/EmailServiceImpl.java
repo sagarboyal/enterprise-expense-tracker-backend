@@ -23,9 +23,11 @@ public class EmailServiceImpl implements EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(email);
         message.setSubject("Password Reset Link");
-        message.setText("Click the link to reset your password: " + resetUrl);
+        message.setText("Click the link below to reset your password:\n\n" + resetUrl +
+                "\n\nIf you didn’t request this, please ignore this email.");
         mailSender.send(message);
     }
+
 
     @Override
     public void sendInvoiceEmail(Invoice invoice, byte[] byteArray) {
