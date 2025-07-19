@@ -13,10 +13,15 @@ import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequestMapping("/api/users")
@@ -77,34 +82,16 @@ public class UserController {
         userService.deleteUser(id);
         return ResponseEntity.ok("User deleted successfully");
     }
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @GetMapping("/invoices")
-    public ResponseEntity<PagedResponse<Invoice>>  getAllInvoices(
-            @RequestParam(name = "userId", required = false) Long userId,
-            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
-            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
-            @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_INVOICE, required = false) String sortBy,
-            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
-    ){
-        return ResponseEntity.ok(invoiceService.findAllInvoices(userId, pageNumber, pageSize, sortBy, sortOrder));
-    }
 
-    @GetMapping("/user-invoices")
+    @GetMapping("/invoices")
     public ResponseEntity<PagedResponse<Invoice>>  getAllUserInvoices(
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_INVOICE, required = false) String sortBy,
             @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
     ){
-        return ResponseEntity.ok(invoiceService.findAllInvoices(authUtils.loggedInUser().getId(), pageNumber, pageSize, sortBy, sortOrder));
+        return ResponseEntity.ok(invoiceService.findAllInvoices(authUtils.loggedInUser().getId(), null, null, pageNumber, pageSize, sortBy, sortOrder));
     }
-
-    @GetMapping("/invoices/{invoiceId}/export")
-    public ResponseEntity<String> downloadInvoiceById(@PathVariable Long invoiceId, HttpServletResponse response) {
-        Invoice invoice = invoiceService.exportInvoiceById(invoiceId, response);
-        return ResponseEntity.ok("Invoice #" + invoice.getInvoiceNumber() + " has been exported successfully as a PDF.");
-    }
-
 
     @GetMapping("/invoices/{invoiceId}/view")
     public void viewInvoice(@PathVariable Long invoiceId, HttpServletResponse response) {
