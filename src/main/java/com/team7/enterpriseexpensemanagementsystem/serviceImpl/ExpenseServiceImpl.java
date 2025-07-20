@@ -157,7 +157,6 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Override
     public void deleteExpense(Long id) {
         Expense expense = getExpenseById(id);
-        Category category = expense.getCategory();
 
         List<Approval> approvals = expense.getApprovals();
         Approval latest = approvals != null && !approvals.isEmpty()
@@ -299,7 +298,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     private ApprovalStatus convertStatus(String status) {
-        if (status == null || status.isEmpty()) return ApprovalStatus.PENDING;;
+        if (status == null || status.isEmpty()) return ApprovalStatus.PENDING;
         System.out.println("Filtering by status: " + status);
 
         return switch (status.toLowerCase()) {

@@ -22,8 +22,6 @@ import java.util.List;
 public class AdminController {
     private final AuditLogService auditLogService;
     private final InvoiceService invoiceService;
-    @Value("${frontend.url}")
-    private String frontEndUrl;
 
     @GetMapping("/audit-log")
     public ResponseEntity<PagedResponse<AuditLog>> getAuditLogs(
