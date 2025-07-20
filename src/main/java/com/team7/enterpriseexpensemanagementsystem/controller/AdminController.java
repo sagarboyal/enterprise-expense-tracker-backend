@@ -7,18 +7,13 @@ import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseRespo
 import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.AuditLogService;
 import com.team7.enterpriseexpensemanagementsystem.service.InvoiceService;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @RestController
@@ -64,9 +59,10 @@ public class AdminController {
                 .findAllInvoices(userId, email, invoiceNumber, pageNumber, pageSize, sortBy, sortOrder));
     }
 
-    @GetMapping("/invoice/mail/{userId}")
-    public ResponseEntity<String> sendInvoice(@PathVariable Long userId, HttpServletResponse response) {
-        invoiceService.sendInvoice(userId, response);
+    @GetMapping("/invoice/mail")
+    public ResponseEntity<String> sendInvoice(@RequestParam(required = false) Long userId,
+                                              @RequestParam Long invoiceId) {
+        invoiceService.sendInvoice(userId, invoiceId);
         return ResponseEntity.ok("Mail Sent!");
     }
 
@@ -78,22 +74,13 @@ public class AdminController {
     @GetMapping("/invoice/generate/{userId}")
     public ResponseEntity<Void> generateInvoice(@PathVariable Long userId) {
         invoiceService.generateInvoice(userId);
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.noContent().build();
     }
 
-    @CrossOrigin(origins = "${frontend.url}")
-    @GetMapping("/users/invoice/{invoiceId}/download")
-    public ResponseEntity<byte[]> downloadInvoice(@PathVariable Long invoiceId) {
-        byte[] pdfBytes = invoiceService.exportInvoiceById(invoiceId);
-        Invoice invoice = invoiceService.getInvoiceById(invoiceId);
-
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        String filename = "invoice-" + invoice.getInvoiceNumber() + "-" + timestamp + ".pdf";
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(pdfBytes);
+    @DeleteMapping("/invoice/delete/{invoiceId}")
+    public ResponseEntity<String> deleteInvoice(@PathVariable Long invoiceId) {
+        invoiceService.deleteInvoice(invoiceId);
+        return ResponseEntity.ok("Invoice Deleted!");
     }
 
 }

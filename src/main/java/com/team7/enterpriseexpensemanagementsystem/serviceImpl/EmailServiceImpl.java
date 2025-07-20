@@ -1,8 +1,10 @@
 package com.team7.enterpriseexpensemanagementsystem.serviceImpl;
 
+import com.cloudinary.Cloudinary;
 import com.team7.enterpriseexpensemanagementsystem.entity.Invoice;
 import com.team7.enterpriseexpensemanagementsystem.exception.ApiException;
 import com.team7.enterpriseexpensemanagementsystem.service.EmailService;
+import com.team7.enterpriseexpensemanagementsystem.utils.pdfGeneration.PdfExportUtils;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
@@ -11,12 +13,14 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
 import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
 public class EmailServiceImpl implements EmailService {
     private final JavaMailSender mailSender;
+    private final Cloudinary cloudinary;
 
     @Override
     public void sendPasswordResetEmail(String email, String resetUrl) {
@@ -30,12 +34,16 @@ public class EmailServiceImpl implements EmailService {
 
 
     @Override
-    public void sendInvoiceEmail(Invoice invoice, byte[] byteArray) {
+    public void sendInvoiceEmail(Invoice invoice, String email) {
         try {
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            PdfExportUtils.exportInvoice(invoice, stream);
+            byte[] pdfBytes = stream.toByteArray();
+
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
 
-            helper.setTo(invoice.getUser().getEmail());
+            helper.setTo(email);
             helper.setSubject("Your Invoice - " + invoice.getInvoiceNumber());
 
             String body = String.format("""
@@ -54,15 +62,16 @@ public class EmailServiceImpl implements EmailService {
                     invoice.getGeneratedAt().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")),
                     invoice.getTotalAmount()
             );
-            helper.setText(body);
 
-            helper.addAttachment("invoice-" + invoice.getInvoiceNumber() + ".pdf",
-                    new ByteArrayResource(byteArray));
+            helper.setText(body);
+            helper.addAttachment("invoice-" + invoice.getInvoiceNumber() + ".pdf", new ByteArrayResource(pdfBytes));
 
             mailSender.send(mimeMessage);
 
         } catch (Exception e) {
-            throw new ApiException("Failed to send invoice email: " + e.getMessage());
+            throw new ApiException("Failed to generate or send invoice email: " + e.getMessage());
         }
     }
+
+
 }

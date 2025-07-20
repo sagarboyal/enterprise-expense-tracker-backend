@@ -41,4 +41,6 @@ public class Invoice {
     @Enumerated(EnumType.STRING)
     private InvoiceStatus status;
 
+    private String invoiceCloudId;
+    private String invoiceUrl;
 }

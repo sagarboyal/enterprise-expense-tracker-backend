@@ -19,7 +19,7 @@ import com.team7.enterpriseexpensemanagementsystem.service.NotificationService;
 import com.team7.enterpriseexpensemanagementsystem.specification.ExpenseSpecification;
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
 import com.team7.enterpriseexpensemanagementsystem.utils.ObjectMapperUtils;
-import com.team7.enterpriseexpensemanagementsystem.utils.PdfExportUtils;
+import com.team7.enterpriseexpensemanagementsystem.utils.pdfGeneration.PdfExportUtils;
 import com.team7.enterpriseexpensemanagementsystem.utils.UserUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import org.modelmapper.ModelMapper;

@@ -5,7 +5,7 @@ import com.team7.enterpriseexpensemanagementsystem.entity.FileDocument;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
 import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.FileDocumentRepository;
-import com.team7.enterpriseexpensemanagementsystem.service.CloudinaryImageService;
+import com.team7.enterpriseexpensemanagementsystem.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
@@ -24,7 +24,7 @@ import java.util.UUID;
 public class DocumentController {
     private final FileDocumentRepository fileDocumentRepository;
     private final ExpenseRepository expenseRepository;
-    private final CloudinaryImageService  cloudinaryImageService;
+    private final CloudinaryService cloudinaryImageService;
 
     @PostMapping("/cloudinary/upload/{expenseId}")
     public ResponseEntity<FileDocument> uploadCloudinaryImage(@PathVariable Long expenseId, @RequestBody MultipartFile file) {

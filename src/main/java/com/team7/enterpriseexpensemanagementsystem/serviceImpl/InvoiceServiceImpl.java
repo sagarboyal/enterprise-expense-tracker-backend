@@ -5,11 +5,13 @@ import com.team7.enterpriseexpensemanagementsystem.exception.ApiException;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.InvoiceRepository;
+import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
+import com.team7.enterpriseexpensemanagementsystem.service.CloudinaryService;
 import com.team7.enterpriseexpensemanagementsystem.service.EmailService;
 import com.team7.enterpriseexpensemanagementsystem.service.InvoiceService;
 import com.team7.enterpriseexpensemanagementsystem.specification.InvoiceSpecification;
-import com.team7.enterpriseexpensemanagementsystem.utils.PdfExportUtils;
-import jakarta.servlet.http.HttpServletResponse;
+import com.team7.enterpriseexpensemanagementsystem.utils.pdfGeneration.ByteArrayMultipartFile;
+import com.team7.enterpriseexpensemanagementsystem.utils.pdfGeneration.PdfExportUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -24,6 +27,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -31,6 +35,8 @@ import java.util.UUID;
 public class InvoiceServiceImpl implements InvoiceService {
     private final InvoiceRepository invoiceRepository;
     private final EmailService emailService;
+    private final CloudinaryService cloudinaryService;
+    private final UserRepository userRepository;
 
     @Override
     public void generateInvoice(User user, Expense expense) {
@@ -62,41 +68,92 @@ public class InvoiceServiceImpl implements InvoiceService {
     public void generateInvoice(Long userId) {
         Invoice invoice = invoiceRepository.findByUserIdAndStatus(userId, InvoiceStatus.IN_PROGRESS);
 
-        invoice.setStatus(InvoiceStatus.GENERATED);
+        if (invoice.getInvoiceUrl() != null && !invoice.getInvoiceUrl().isEmpty()) {
+            throw new ApiException("Invoice already exists!");
+        }
+
+        try {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            PdfExportUtils.exportInvoice(invoice, outputStream);
+            byte[] pdfBytes = outputStream.toByteArray();
+
+            String customFileName = "invoice-" + invoice.getInvoiceNumber() + "-user-" + invoice.getUser().getId();
+
+            MultipartFile multipartFile = new ByteArrayMultipartFile(
+                    pdfBytes,
+                    "file",
+                    customFileName + ".pdf",
+                    "application/pdf"
+            );
+
+            Map uploadResult = cloudinaryService.uploadInvoice(multipartFile, customFileName);
+
+            String fileUrl = (String) uploadResult.get("secure_url");
+            invoice.setInvoiceUrl(fileUrl);
+            invoice.setInvoiceCloudId((String) uploadResult.get("public_id"));
+            invoice.setStatus(InvoiceStatus.GENERATED);
+            invoiceRepository.save(invoice);
+
+            System.out.println("Successfully uploaded invoice " + invoice.getId() + " to: " + fileUrl);
+
+        } catch (IOException e) {
+            throw new ApiException("Failed to generate or upload invoice PDF for ID " + invoice.getId(), e);
+        }
+
         invoiceRepository.save(invoice);
     }
 
     @Override
-    public Invoice exportInvoice(Long userId, HttpServletResponse response) {
-        Invoice invoice = invoiceRepository.findByUserIdAndStatus(userId, InvoiceStatus.IN_PROGRESS);
-        if (invoice == null)
-            invoice = invoiceRepository
-                    .findTopByUserIdAndStatusOrderByGeneratedAtDesc(userId, InvoiceStatus.GENERATED)
-                    .orElseThrow(() -> new ApiException("No invoice found"));
+    public void deleteInvoice(Long invoiceId) {
+        Invoice invoice = getInvoiceById(invoiceId);
+        cloudinaryService.deleteInvoice(invoice.getInvoiceCloudId());
+        invoiceRepository.delete(invoice);
+    }
 
-        try {
-            generatePdfStream(response, invoice);
-
-            invoice.setStatus(InvoiceStatus.GENERATED);
-            invoice = invoiceRepository.save(invoice);
-
-            return invoice;
-
-        } catch (IOException e) {
-            throw new ApiException("Error generating PDF");
+    @Override
+    public Invoice regenerateInvoice(Long invoiceId) {
+        Invoice invoice = getInvoiceById(invoiceId);
+        if(invoice.getInvoiceUrl() != null && !invoice.getInvoiceUrl().isEmpty()) {
+            cloudinaryService.deleteInvoice(invoice.getInvoiceCloudId());
         }
+        try {
+            String customFileName = "invoice-" + invoice.getInvoiceNumber() + "-user-" + invoice.getUser().getId();
+
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            PdfExportUtils.exportInvoice(invoice, stream);
+            byte[] pdfBytes = stream.toByteArray();
+
+            MultipartFile multipartFile = new ByteArrayMultipartFile(
+                    pdfBytes,
+                    "file",
+                    customFileName + ".pdf",
+                    "application/pdf"
+            );
+
+            Map uploadResult = cloudinaryService.uploadInvoice(multipartFile, customFileName);
+
+            String fileUrl = (String) uploadResult.get("secure_url");
+            invoice.setInvoiceUrl(fileUrl);
+            invoice.setInvoiceCloudId((String) uploadResult.get("public_id"));
+
+            System.out.println("Successfully re-uploaded invoice " + invoice.getId() + " to: " + fileUrl);
+        } catch (IOException e) {
+            throw new ApiException("Failed to generate or upload invoice PDF for ID " + invoice.getId(), e);
+        }
+        return invoiceRepository.save(invoice);
     }
 
-    public void sendInvoice(Long userId, HttpServletResponse response) {
-        Invoice invoice = exportInvoice(userId, response);
+    public void sendInvoice(Long userId, Long InvoiceId) {
+        Invoice invoice = getInvoiceById(InvoiceId);
+        User user = invoice.getUser();
 
-        ByteArrayOutputStream pdfStream = new ByteArrayOutputStream();
-    try{
-        PdfExportUtils.exportInvoice(invoice, pdfStream);
-    } catch (IOException e) {
-        throw new ApiException("Error generating PDF");
-    }
-        emailService.sendInvoiceEmail(invoice, pdfStream.toByteArray());
+        if (userId != null && !invoice.getUser().getId().equals(userId)) {
+           user = userRepository.findById(userId).orElseThrow(
+                   () -> new ApiException("User not found with ID " + userId)
+           );
+        }
+
+        emailService.sendInvoiceEmail(invoice, user.getEmail());
     }
 
     @Override
@@ -121,46 +178,6 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .totalPages(invoicePage.getTotalPages())
                 .lastPage(invoicePage.isLast())
                 .build();
-    }
-
-    @Override
-    public byte[] exportInvoiceById(Long invoiceId) {
-        Invoice invoice = invoiceRepository.findById(invoiceId)
-                .orElseThrow(() -> new ApiException("Invoice not found with ID: " + invoiceId));
-
-        ByteArrayOutputStream pdfStream = new ByteArrayOutputStream();
-        try {
-            PdfExportUtils.exportInvoice(invoice, pdfStream);
-        } catch (IOException e) {
-            throw new ApiException("Error generating PDF for invoice ID: " + invoiceId);
-        }
-
-        return pdfStream.toByteArray();
-    }
-
-    public void streamInvoicePdfById(Long invoiceId, HttpServletResponse response, boolean asInline) {
-        Invoice invoice = invoiceRepository.findById(invoiceId)
-                .orElseThrow(() -> new ApiException("Invoice not found"));
-
-        try {
-            ByteArrayOutputStream pdfStream = new ByteArrayOutputStream();
-            PdfExportUtils.exportInvoice(invoice, pdfStream);
-            byte[] pdfBytes = pdfStream.toByteArray();
-
-            response.setContentType("application/pdf");
-            response.setCharacterEncoding("UTF-8");
-
-            String dispositionType = asInline ? "inline" : "attachment";
-            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            String filename = "invoice-" + invoice.getInvoiceNumber() + "-" + timestamp + ".pdf";
-            response.setHeader("Content-Disposition", dispositionType + "; filename=" + filename);
-
-            response.getOutputStream().write(pdfBytes);
-            response.getOutputStream().flush();
-
-        } catch (IOException e) {
-            throw new ApiException("Error generating invoice PDF");
-        }
     }
 
     @Override
@@ -200,24 +217,6 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .level(latest != null ? latest.getLevel() : null)
                 .message(latest != null ? latest.getComment() : null)
                 .build();
-    }
-
-
-    private void generatePdfStream(HttpServletResponse response, Invoice invoice) throws IOException {
-        ByteArrayOutputStream pdfStream = new ByteArrayOutputStream();
-
-        PdfExportUtils.exportInvoice(invoice, pdfStream);
-
-        byte[] pdfBytes = pdfStream.toByteArray();
-
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        String filename = "invoice-" + invoice.getInvoiceNumber() + "-" + timestamp + ".pdf";
-
-        response.setContentType("application/pdf");
-        response.setCharacterEncoding("UTF-8");
-        response.setHeader("Content-Disposition", "attachment; filename=" + filename);
-        response.getOutputStream().write(pdfBytes);
-        response.getOutputStream().flush();
     }
 
     private static String generateInvoiceNumber() {

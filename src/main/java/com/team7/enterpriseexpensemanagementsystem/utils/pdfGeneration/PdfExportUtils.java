@@ -1,10 +1,9 @@
-package com.team7.enterpriseexpensemanagementsystem.utils;
+package com.team7.enterpriseexpensemanagementsystem.utils.pdfGeneration;
 
 import com.lowagie.text.*;
 import com.lowagie.text.Font;
 import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.*;
-import com.team7.enterpriseexpensemanagementsystem.entity.Approval;
 import com.team7.enterpriseexpensemanagementsystem.entity.Expense;
 import com.team7.enterpriseexpensemanagementsystem.entity.Invoice;
 import com.team7.enterpriseexpensemanagementsystem.exception.ApiException;

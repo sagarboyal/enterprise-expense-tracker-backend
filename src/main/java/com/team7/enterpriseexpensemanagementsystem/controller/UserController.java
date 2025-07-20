@@ -10,18 +10,12 @@ import com.team7.enterpriseexpensemanagementsystem.payload.response.UserResponse
 import com.team7.enterpriseexpensemanagementsystem.service.InvoiceService;
 import com.team7.enterpriseexpensemanagementsystem.service.UserService;
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequestMapping("/api/users")
@@ -93,9 +87,14 @@ public class UserController {
         return ResponseEntity.ok(invoiceService.findAllInvoices(authUtils.loggedInUser().getId(), null, null, pageNumber, pageSize, sortBy, sortOrder));
     }
 
-    @GetMapping("/invoices/{invoiceId}/view")
-    public void viewInvoice(@PathVariable Long invoiceId, HttpServletResponse response) {
-        invoiceService.streamInvoicePdfById(invoiceId, response, true);
+    @GetMapping("/invoice/re-generate/{invoiceId}")
+    public ResponseEntity<Invoice> reGenerateInvoice(@PathVariable Long invoiceId) {
+        return ResponseEntity.ok(invoiceService.regenerateInvoice(invoiceId));
+    }
+
+    @GetMapping("/invoice/{invoiceId}")
+    public ResponseEntity<Invoice> getInvoiceById(@PathVariable Long invoiceId) {
+        return ResponseEntity.ok(invoiceService.getInvoiceById(invoiceId));
     }
 
 }
