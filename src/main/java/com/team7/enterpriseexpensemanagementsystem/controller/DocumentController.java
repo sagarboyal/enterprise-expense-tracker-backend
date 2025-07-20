@@ -5,35 +5,31 @@ import com.team7.enterpriseexpensemanagementsystem.entity.FileDocument;
 import com.team7.enterpriseexpensemanagementsystem.exception.ResourceNotFoundException;
 import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.FileDocumentRepository;
-import com.team7.enterpriseexpensemanagementsystem.service.FileStorageService;
-import jakarta.servlet.http.HttpServletRequest;
+import com.team7.enterpriseexpensemanagementsystem.service.CloudinaryImageService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/document")
 @RequiredArgsConstructor
 public class DocumentController {
-    private final FileStorageService fileStorageService;
     private final FileDocumentRepository fileDocumentRepository;
     private final ExpenseRepository expenseRepository;
+    private final CloudinaryImageService  cloudinaryImageService;
 
-    @PostMapping("/{expenseId}/upload")
-    public ResponseEntity<String> uploadInvoice(@PathVariable Long expenseId,
-                                                @RequestParam("file") MultipartFile file) {
+    @PostMapping("/cloudinary/upload/{expenseId}")
+    public ResponseEntity<FileDocument> uploadCloudinaryImage(@PathVariable Long expenseId, @RequestBody MultipartFile file) {
         if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body("File is empty");
+            throw new ResourceNotFoundException("File is empty")    ;
         }
 
         Expense expense = expenseRepository.findById(expenseId)
@@ -41,68 +37,33 @@ public class DocumentController {
 
         Optional<FileDocument> existingDocOpt = fileDocumentRepository.findByExpenseId(expenseId);
         existingDocOpt.ifPresent(existingDoc -> {
-            try {
-                fileStorageService.deleteFile(existingDoc.getFileName());
-                fileDocumentRepository.delete(existingDoc);
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to delete existing file: " + e.getMessage());
-            }
+            cloudinaryImageService.deleteImage(existingDoc.getImageId());
+            fileDocumentRepository.delete(existingDoc);
         });
 
-        String fileName;
-        try {
-            fileName = fileStorageService.storeFile(file);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Could not upload file: " + e.getMessage());
-        }
+        String fileName = UUID.randomUUID() + "_"
+                + StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
+
+        Map data = cloudinaryImageService.uploadImage(file);
 
         FileDocument doc = FileDocument.builder()
                 .fileName(fileName)
-                .filePath("uploads/invoices/" + fileName)
                 .uploadedAt(LocalDateTime.now())
                 .expense(expense)
+                .imageId(data.get("public_id").toString())
+                .imageUrl(data.get("secure_url").toString())
                 .build();
-
-        fileDocumentRepository.save(doc);
-
-        return ResponseEntity.ok("Uploaded: " + fileName);
+        return ResponseEntity.ok(fileDocumentRepository.save(doc));
     }
 
-
-    @GetMapping("/view/{fileName:.+}")
-    public ResponseEntity<Resource> viewFile(@PathVariable String fileName, HttpServletRequest request) throws MalformedURLException {
-        Resource resource = fileStorageService.loadFileAsResource(fileName);
-
-        // Try to determine file's content type
-        String contentType = null;
-        try {
-            contentType = request.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
-        } catch (IOException ex) {
-            contentType = "application/octet-stream"; // fallback
-        }
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
-                .body(resource);
-    }
-
-
-    @GetMapping("/download/{fileName:.+}")
-    public ResponseEntity<Resource> downloadFile(@PathVariable String fileName) throws MalformedURLException {
-        Resource resource = fileStorageService.loadFileAsResource(fileName);
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
-                .body(resource);
-    }
-
-    @GetMapping("/{expenseId:.+}")
-    public ResponseEntity<FileDocument> downloadFile(@PathVariable Long expenseId){
-        return ResponseEntity.ok()
-                .body(fileDocumentRepository.findByExpenseId(expenseId)
-                        .orElse(null));
+    @PostMapping("/cloudinary/delete/{expenseId}")
+    public ResponseEntity<String> deleteCloudinaryImage(@PathVariable Long expenseId) {
+        Optional<FileDocument> existingDocOpt = fileDocumentRepository.findByExpenseId(expenseId);
+        existingDocOpt.ifPresent(existingDoc -> {
+            cloudinaryImageService.deleteImage(existingDoc.getImageId());
+            fileDocumentRepository.delete(existingDoc);
+        });
+        return ResponseEntity.ok("Image deleted successfully");
     }
 }
 

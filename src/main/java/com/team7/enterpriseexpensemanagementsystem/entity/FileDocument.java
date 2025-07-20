@@ -20,9 +20,11 @@ public class FileDocument {
     private Long id;
 
     private String fileName;
-    private String filePath;
 
     private LocalDateTime uploadedAt;
+
+    private String imageId;
+    private String imageUrl;
 
     @ManyToOne
     @JoinColumn(name = "expense_id")
