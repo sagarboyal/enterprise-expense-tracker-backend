@@ -8,7 +8,6 @@ import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedRespons
 import com.team7.enterpriseexpensemanagementsystem.service.AuditLogService;
 import com.team7.enterpriseexpensemanagementsystem.service.InvoiceService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -47,6 +46,7 @@ public class AdminController {
             @RequestParam(name = "userId", required = false) Long userId,
             @RequestParam(name = "email",  required = false) String email,
             @RequestParam(name = "invoiceNumber",  required = false) String invoiceNumber,
+            @RequestParam(name = "status",  required = false) String status,
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_INVOICE, required = false) String sortBy,
@@ -54,7 +54,7 @@ public class AdminController {
 
     ) {
         return ResponseEntity.ok(invoiceService
-                .findAllInvoices(userId, email, invoiceNumber, pageNumber, pageSize, sortBy, sortOrder));
+                .findAllInvoices(userId, email, invoiceNumber,status, pageNumber, pageSize, sortBy, sortOrder));
     }
 
     @GetMapping("/invoice/mail")
@@ -62,11 +62,6 @@ public class AdminController {
                                               @RequestParam Long invoiceId) {
         invoiceService.sendInvoice(userId, invoiceId);
         return ResponseEntity.ok("Mail Sent!");
-    }
-
-    @GetMapping("/invoice/expenses/{invoiceId}")
-    public ResponseEntity<List<ExpenseResponse>> handleInvoiceExpenses(@PathVariable Long invoiceId) {
-        return ResponseEntity.ok(invoiceService.getExpenseList(invoiceId));
     }
 
     @GetMapping("/invoice/generate/{userId}")

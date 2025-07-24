@@ -5,6 +5,7 @@ import com.team7.enterpriseexpensemanagementsystem.entity.Invoice;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.RoleUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.UserRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.UserUpdateRequest;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.UserResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.InvoiceService;
@@ -16,6 +17,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -84,7 +87,12 @@ public class UserController {
             @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_INVOICE, required = false) String sortBy,
             @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
     ){
-        return ResponseEntity.ok(invoiceService.findAllInvoices(authUtils.loggedInUser().getId(), null, null, pageNumber, pageSize, sortBy, sortOrder));
+        return ResponseEntity.ok(invoiceService.findAllInvoices(authUtils.loggedInUser().getId(), null, null,null, pageNumber, pageSize, sortBy, sortOrder));
+    }
+
+    @GetMapping("/invoice/expenses/{invoiceId}")
+    public ResponseEntity<List<ExpenseResponse>> handleInvoiceExpenses(@PathVariable Long invoiceId) {
+        return ResponseEntity.ok(invoiceService.getExpenseList(invoiceId));
     }
 
     @GetMapping("/invoice/re-generate/{invoiceId}")
