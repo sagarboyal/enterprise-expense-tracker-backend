@@ -16,6 +16,7 @@ import java.time.LocalDate;
 public class ExpenseResponse {
     private Long id;
     private Long userId;
+    private String fullName;
     private String title;
     private Double amount;
     private LocalDate expenseDate;

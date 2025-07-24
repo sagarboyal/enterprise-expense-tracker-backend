@@ -112,13 +112,12 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
     @Query("""
     SELECT FUNCTION('DAYNAME', e.expenseDate), SUM(e.amount), FUNCTION('DAYOFWEEK', e.expenseDate)
     FROM Expense e
-    WHERE e.expenseDate BETWEEN :start AND :end
+    WHERE e.user.id = :userId AND e.expenseDate BETWEEN :start AND :end
     GROUP BY FUNCTION('DAYNAME', e.expenseDate), FUNCTION('DAYOFWEEK', e.expenseDate)
     ORDER BY FUNCTION('DAYOFWEEK', e.expenseDate)
 """)
-    List<Object[]> findTotalByDayOfWeek(@Param("start") LocalDate start,
-                                        @Param("end") LocalDate end);
+    List<Object[]> findTotalByDayOfWeekForUser(@Param("start") LocalDate start,
+                                               @Param("end") LocalDate end,
+                                               @Param("userId") Long userId);
 
-
-    void deleteByUserId(Long userId);
 }

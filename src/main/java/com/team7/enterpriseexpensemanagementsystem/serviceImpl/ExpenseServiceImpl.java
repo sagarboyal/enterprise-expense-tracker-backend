@@ -8,14 +8,8 @@ import com.team7.enterpriseexpensemanagementsystem.payload.request.ApprovalReque
 import com.team7.enterpriseexpensemanagementsystem.payload.request.ExpenseUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
-import com.team7.enterpriseexpensemanagementsystem.repository.ApprovalRepository;
-import com.team7.enterpriseexpensemanagementsystem.repository.CategoryRepository;
-import com.team7.enterpriseexpensemanagementsystem.repository.ExpenseRepository;
-import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
-import com.team7.enterpriseexpensemanagementsystem.service.AuditLogService;
-import com.team7.enterpriseexpensemanagementsystem.service.ExpenseService;
-import com.team7.enterpriseexpensemanagementsystem.service.InvoiceService;
-import com.team7.enterpriseexpensemanagementsystem.service.NotificationService;
+import com.team7.enterpriseexpensemanagementsystem.repository.*;
+import com.team7.enterpriseexpensemanagementsystem.service.*;
 import com.team7.enterpriseexpensemanagementsystem.specification.ExpenseSpecification;
 import com.team7.enterpriseexpensemanagementsystem.utils.AuthUtils;
 import com.team7.enterpriseexpensemanagementsystem.utils.ObjectMapperUtils;
@@ -56,8 +50,10 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final NotificationService notificationService;
     private final ApprovalRepository approvalRepository;
     private final InvoiceService invoiceService;
+    private final FileDocumentRepository fileDocumentRepository;
+    private final CloudinaryService cloudinaryService;
 
-    public ExpenseServiceImpl(ExpenseRepository expenseRepository, CategoryRepository categoryRepository, ModelMapper modelMapper, UserRepository userRepository, AuditLogService auditLogService, AuthUtils authUtils, ObjectMapperUtils objectMapperUtils, NotificationService notificationService, ApprovalRepository approvalRepository, InvoiceService invoiceService) {
+    public ExpenseServiceImpl(ExpenseRepository expenseRepository, CategoryRepository categoryRepository, ModelMapper modelMapper, UserRepository userRepository, AuditLogService auditLogService, AuthUtils authUtils, ObjectMapperUtils objectMapperUtils, NotificationService notificationService, ApprovalRepository approvalRepository, InvoiceService invoiceService, FileDocumentRepository fileDocumentRepository, CloudinaryService cloudinaryService) {
         this.expenseRepository = expenseRepository;
         this.categoryRepository = categoryRepository;
         this.modelMapper = modelMapper;
@@ -68,6 +64,8 @@ public class ExpenseServiceImpl implements ExpenseService {
         this.notificationService = notificationService;
         this.approvalRepository = approvalRepository;
         this.invoiceService = invoiceService;
+        this.fileDocumentRepository = fileDocumentRepository;
+        this.cloudinaryService = cloudinaryService;
     }
 
     @Override
@@ -157,6 +155,10 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Override
     public void deleteExpense(Long id) {
         Expense expense = getExpenseById(id);
+        FileDocument document = fileDocumentRepository.findByExpenseId(expense.getId())
+                .orElseThrow(() -> new ApiException("Expense with id: " + expense.getId() + " not found."));
+        cloudinaryService.deleteInvoice(document.getImageId());
+        fileDocumentRepository.delete(document);
 
         List<Approval> approvals = expense.getApprovals();
         Approval latest = approvals != null && !approvals.isEmpty()
@@ -289,10 +291,10 @@ public class ExpenseServiceImpl implements ExpenseService {
                         }
                 ).toList();
                 exportFilteredExpenses(responseList, response);
+                return null;
             }catch(Exception e){
                 System.out.println(e.getMessage());
             }
-
 
         return expenseResponseList;
     }
@@ -410,7 +412,7 @@ public class ExpenseServiceImpl implements ExpenseService {
             LocalDate today = LocalDate.now();
             LocalDate startOfWeek = today.with(DayOfWeek.MONDAY);
 
-            List<Object[]> results = expenseRepository.findTotalByDayOfWeek(startOfWeek, today);
+            List<Object[]> results = expenseRepository.findTotalByDayOfWeekForUser(startOfWeek, today, authUtils.loggedInUser().getId());
 
             Map<String, Double> dayMap = new LinkedHashMap<>();
             for (int i = 0; i < 7; i++) {
@@ -475,6 +477,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         return ExpenseResponse.builder()
                 .id(expense.getId())
                 .userId(expense.getUser().getId())
+                .fullName(expense.getUser().getFullName())
                 .title(expense.getTitle())
                 .amount(expense.getAmount())
                 .expenseDate(expense.getExpenseDate())
