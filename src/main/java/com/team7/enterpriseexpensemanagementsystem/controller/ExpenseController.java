@@ -36,7 +36,7 @@ public class ExpenseController {
     }
 
     @GetMapping
-    public ResponseEntity<PagedResponse<ExpenseResponse>> getAllExpenses(
+    public ResponseEntity<?> getAllExpenses(
             @RequestParam(name = "title", required = false) String title,
             @RequestParam(name = "categoryName", required = false) String categoryName,
             @RequestParam(name = "status", required = false) String status,
@@ -51,7 +51,7 @@ public class ExpenseController {
             @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder,
             @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
             HttpServletResponse response
-    ) {
+    ){
         return ResponseEntity.ok(expenseService.getFilteredExpenses(title, categoryName, status, level, startDate, endDate, minAmount, maxAmount,
                 authUtil.loggedInUser().getId(),
                 pageNumber, pageSize, sortBy, sortOrder, export, response));

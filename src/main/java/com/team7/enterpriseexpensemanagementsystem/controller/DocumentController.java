@@ -26,6 +26,13 @@ public class DocumentController {
     private final ExpenseRepository expenseRepository;
     private final CloudinaryService cloudinaryImageService;
 
+    @GetMapping("/{expenseId}")
+    public ResponseEntity<FileDocument> getDocument(@PathVariable("expenseId") Long expenseId) {
+        return ResponseEntity.ok(fileDocumentRepository.findByExpenseId(expenseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Expense with id: " + expenseId + " not found."))
+        );
+    }
+
     @PostMapping("/cloudinary/upload/{expenseId}")
     public ResponseEntity<FileDocument> uploadCloudinaryImage(@PathVariable Long expenseId, @RequestBody MultipartFile file) {
         if (file.isEmpty()) {
