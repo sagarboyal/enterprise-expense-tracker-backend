@@ -1,15 +1,14 @@
 package com.team7.enterpriseexpensemanagementsystem.serviceImpl;
 
+import com.team7.enterpriseexpensemanagementsystem.dto.InvoiceDTO;
 import com.team7.enterpriseexpensemanagementsystem.entity.*;
 import com.team7.enterpriseexpensemanagementsystem.exception.ApiException;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.ExpenseResponse;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
+import com.team7.enterpriseexpensemanagementsystem.payload.response.UserResponse;
 import com.team7.enterpriseexpensemanagementsystem.repository.InvoiceRepository;
 import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
-import com.team7.enterpriseexpensemanagementsystem.service.CloudinaryService;
-import com.team7.enterpriseexpensemanagementsystem.service.EmailService;
-import com.team7.enterpriseexpensemanagementsystem.service.InvoiceService;
-import com.team7.enterpriseexpensemanagementsystem.service.NotificationService;
+import com.team7.enterpriseexpensemanagementsystem.service.*;
 import com.team7.enterpriseexpensemanagementsystem.specification.InvoiceSpecification;
 import com.team7.enterpriseexpensemanagementsystem.utils.pdfGeneration.ByteArrayMultipartFile;
 import com.team7.enterpriseexpensemanagementsystem.utils.pdfGeneration.PdfExportUtils;
@@ -38,6 +37,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     private final CloudinaryService cloudinaryService;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final UserService userService;
 
     @Override
     public void generateInvoice(User user, Expense expense) {
@@ -160,7 +160,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
-    public PagedResponse<Invoice> findAllInvoices(Long id, String email, String invoiceNumber, String status, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+    public PagedResponse<InvoiceDTO> findAllInvoices(Long id, String email, String invoiceNumber, String status, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         Specification<Invoice> spec = Specification.where(InvoiceSpecification.byUserId(id))
                 .and(InvoiceSpecification.byUserEmail(email))
                 .and(InvoiceSpecification.byInvoiceNumber(invoiceNumber))
@@ -172,9 +172,23 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sort);
         Page<Invoice> invoicePage = invoiceRepository.findAll(spec, pageDetails);
-        List<Invoice> invoiceList = invoicePage.getContent();
+        List<InvoiceDTO> invoiceList = invoicePage.getContent().stream().map(
+                invoice -> {
+                    UserResponse response = userService.getUserById(invoice.getUser().getId());
+                    return InvoiceDTO.builder()
+                            .id(invoice.getId())
+                            .invoiceNumber(invoice.getInvoiceNumber())
+                            .generatedAt(invoice.getGeneratedAt())
+                            .totalAmount(invoice.getTotalAmount())
+                            .user(response)
+                            .status(invoice.getStatus().toString())
+                            .invoiceCloudId(invoice.getInvoiceCloudId())
+                            .invoiceUrl(invoice.getInvoiceUrl())
+                            .build();
+                }
+        ).toList();
 
-        return PagedResponse.<Invoice>builder()
+        return PagedResponse.<InvoiceDTO>builder()
                 .content(invoiceList)
                 .pageNumber(invoicePage.getNumber())
                 .pageSize(invoicePage.getSize())

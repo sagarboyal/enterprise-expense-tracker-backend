@@ -1,5 +1,6 @@
 package com.team7.enterpriseexpensemanagementsystem.service;
 
+import com.team7.enterpriseexpensemanagementsystem.dto.InvoiceDTO;
 import com.team7.enterpriseexpensemanagementsystem.entity.Expense;
 import com.team7.enterpriseexpensemanagementsystem.entity.Invoice;
 import com.team7.enterpriseexpensemanagementsystem.entity.User;
@@ -14,8 +15,8 @@ public interface InvoiceService {
     void deleteInvoice(Long invoiceId);
     Invoice regenerateInvoice(Long invoiceId);
     void sendInvoice(Long userId, Long invoiceId);
-    PagedResponse<Invoice> findAllInvoices(Long id, String email, String invoiceNumber, String status,
-                                           Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
+    PagedResponse<InvoiceDTO> findAllInvoices(Long id, String email, String invoiceNumber, String status,
+                                              Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
     List<ExpenseResponse> getExpenseList(Long invoiceId);
     Invoice getInvoiceById(Long invoiceId);
 }

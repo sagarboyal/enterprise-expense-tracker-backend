@@ -1,8 +1,8 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
 import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
+import com.team7.enterpriseexpensemanagementsystem.dto.InvoiceDTO;
 import com.team7.enterpriseexpensemanagementsystem.entity.AuditLog;
-import com.team7.enterpriseexpensemanagementsystem.entity.Invoice;
 import com.team7.enterpriseexpensemanagementsystem.payload.response.PagedResponse;
 import com.team7.enterpriseexpensemanagementsystem.service.AuditLogService;
 import com.team7.enterpriseexpensemanagementsystem.service.InvoiceService;
@@ -40,7 +40,7 @@ public class AdminController {
     }
 
     @GetMapping("/users/invoice")
-    public ResponseEntity<PagedResponse<Invoice>> getAllInvoices(
+    public ResponseEntity<PagedResponse<InvoiceDTO>> getAllInvoices(
             @RequestParam(name = "userId", required = false) Long userId,
             @RequestParam(name = "email",  required = false) String email,
             @RequestParam(name = "invoiceNumber",  required = false) String invoiceNumber,
