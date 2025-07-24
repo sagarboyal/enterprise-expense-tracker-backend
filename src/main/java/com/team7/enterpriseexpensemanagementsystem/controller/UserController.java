@@ -1,6 +1,7 @@
 package com.team7.enterpriseexpensemanagementsystem.controller;
 
 import com.team7.enterpriseexpensemanagementsystem.config.AppConstants;
+import com.team7.enterpriseexpensemanagementsystem.dto.InvoiceDTO;
 import com.team7.enterpriseexpensemanagementsystem.entity.Invoice;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.RoleUpdateRequest;
 import com.team7.enterpriseexpensemanagementsystem.payload.request.UserRequest;
@@ -81,7 +82,7 @@ public class UserController {
     }
 
     @GetMapping("/invoices")
-    public ResponseEntity<PagedResponse<Invoice>>  getAllUserInvoices(
+    public ResponseEntity<PagedResponse<InvoiceDTO>>  getAllUserInvoices(
             @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
             @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
             @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_INVOICE, required = false) String sortBy,

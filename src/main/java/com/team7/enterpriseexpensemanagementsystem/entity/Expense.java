@@ -28,11 +28,9 @@ public class Expense {
     private Double amount;
     private LocalDate expenseDate;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     @Size(max = 1000)
     private String description;
-
 
     @JsonIgnore
     @ManyToOne

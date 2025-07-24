@@ -25,6 +25,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -352,8 +353,8 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     public SummaryDTO getSummary(Long id) {
-        Double totalExpenses = expenseRepository.getTotalExpensesByUser(id);
-        totalExpenses = (totalExpenses == null) ? 0.0 : totalExpenses;
+        BigDecimal totalExpenses = expenseRepository.getTotalExpensesByUserId(id);
+        totalExpenses = (totalExpenses == null) ? BigDecimal.ZERO : totalExpenses;
 
         LocalDate now = LocalDate.now();
 
@@ -373,7 +374,7 @@ public class ExpenseServiceImpl implements ExpenseService {
 
 
         // Build and return combined DTO
-        return new SummaryDTO(totalExpenses, approvedCount, pendingCount, rejectedCount, mappedStatusList);
+        return new SummaryDTO(totalExpenses.doubleValue(), approvedCount, pendingCount, rejectedCount, mappedStatusList);
     }
 
     @Override
