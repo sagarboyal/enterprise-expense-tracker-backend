@@ -9,6 +9,7 @@ import com.team7.enterpriseexpensemanagementsystem.repository.UserRepository;
 import com.team7.enterpriseexpensemanagementsystem.service.CloudinaryService;
 import com.team7.enterpriseexpensemanagementsystem.service.EmailService;
 import com.team7.enterpriseexpensemanagementsystem.service.InvoiceService;
+import com.team7.enterpriseexpensemanagementsystem.service.NotificationService;
 import com.team7.enterpriseexpensemanagementsystem.specification.InvoiceSpecification;
 import com.team7.enterpriseexpensemanagementsystem.utils.pdfGeneration.ByteArrayMultipartFile;
 import com.team7.enterpriseexpensemanagementsystem.utils.pdfGeneration.PdfExportUtils;
@@ -36,6 +37,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     private final EmailService emailService;
     private final CloudinaryService cloudinaryService;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Override
     public void generateInvoice(User user, Expense expense) {
@@ -68,7 +70,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         Invoice invoice = invoiceRepository.findByUserIdAndStatus(userId, InvoiceStatus.IN_PROGRESS);
 
         if (invoice.getInvoiceUrl() != null && !invoice.getInvoiceUrl().isEmpty()) {
-            throw new ApiException("Invoice already exists!");
+            throw new ApiException("Operation failed: All invoices are already processed or approved.");
         }
 
         try {
@@ -93,13 +95,15 @@ public class InvoiceServiceImpl implements InvoiceService {
             invoice.setStatus(InvoiceStatus.GENERATED);
             invoiceRepository.save(invoice);
 
+            notificationService.saveNotification(new Notification("✅ Your invoice is ready. You can now view or download it."),
+                    invoice.getUser().getId());
             System.out.println("Successfully uploaded invoice " + invoice.getId() + " to: " + fileUrl);
+            emailService.sendInvoiceEmail(invoice, invoice.getUser().getEmail());
+            System.out.println("Email sent to " + invoice.getUser().getEmail());
 
         } catch (IOException e) {
             throw new ApiException("Failed to generate or upload invoice PDF for ID " + invoice.getId(), e);
         }
-
-        invoiceRepository.save(invoice);
     }
 
     @Override
@@ -156,10 +160,11 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
-    public PagedResponse<Invoice> findAllInvoices(Long id, String email, String invoiceNumber, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+    public PagedResponse<Invoice> findAllInvoices(Long id, String email, String invoiceNumber, String status, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         Specification<Invoice> spec = Specification.where(InvoiceSpecification.byUserId(id))
                 .and(InvoiceSpecification.byUserEmail(email))
-                .and(InvoiceSpecification.byInvoiceNumber(invoiceNumber));
+                .and(InvoiceSpecification.byInvoiceNumber(invoiceNumber))
+                .and(InvoiceSpecification.byStatus(status));
 
         Sort sort = sortOrder.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending()

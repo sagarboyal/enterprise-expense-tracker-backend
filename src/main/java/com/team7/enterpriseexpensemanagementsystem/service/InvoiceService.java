@@ -14,7 +14,7 @@ public interface InvoiceService {
     void deleteInvoice(Long invoiceId);
     Invoice regenerateInvoice(Long invoiceId);
     void sendInvoice(Long userId, Long invoiceId);
-    PagedResponse<Invoice> findAllInvoices(Long id, String email, String invoiceNumber,
+    PagedResponse<Invoice> findAllInvoices(Long id, String email, String invoiceNumber, String status,
                                            Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
     List<ExpenseResponse> getExpenseList(Long invoiceId);
     Invoice getInvoiceById(Long invoiceId);
