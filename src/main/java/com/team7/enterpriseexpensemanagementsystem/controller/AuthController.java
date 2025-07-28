@@ -106,11 +106,6 @@ public class AuthController {
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
 
-    @GetMapping("/csrf")
-    public ResponseEntity<CsrfToken> csrfHandler(HttpServletRequest request) {
-        return ResponseEntity.ok((CsrfToken) request.getAttribute(CsrfToken.class.getName()));
-    }
-
     @GetMapping("/user")
     public ResponseEntity<?> getUserDetails(@AuthenticationPrincipal UserDetails userDetails) {
         User user = authUtils.loggedInUser();
