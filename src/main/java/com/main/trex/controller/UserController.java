@@ -1,0 +1,109 @@
+package com.main.trex.controller;
+
+import com.main.trex.config.AppConstants;
+import com.main.trex.dto.InvoiceDTO;
+import com.main.trex.entity.Invoice;
+import com.main.trex.payload.request.RoleUpdateRequest;
+import com.main.trex.payload.request.UserRequest;
+import com.main.trex.payload.request.UserUpdateRequest;
+import com.main.trex.payload.response.ExpenseResponse;
+import com.main.trex.payload.response.PagedResponse;
+import com.main.trex.payload.response.UserResponse;
+import com.main.trex.service.InvoiceService;
+import com.main.trex.service.UserService;
+import com.main.trex.utils.AuthUtils;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/users")
+@RequiredArgsConstructor
+public class UserController {
+    private final UserService userService;
+    private final AuthUtils authUtils;
+    private final InvoiceService invoiceService;
+
+    @GetMapping
+    public ResponseEntity<PagedResponse<UserResponse>> getAllUsers(
+            @RequestParam(name = "fullName", required = false) String name,
+            @RequestParam(name = "email", required = false) String email,
+            @RequestParam(name="role", required = false) String role,
+            @RequestParam(name = "minAmount", required = false) Double minAmount,
+            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+    ) {
+        PagedResponse<UserResponse> response = userService.getAllUsers(name, email, role, minAmount,
+                        pageNumber, pageSize, sortBy, sortOrder);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity<UserResponse> getUserById() {
+        return ResponseEntity.ok(userService.getUserById(authUtils.loggedInUser().getId()));
+    }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_MANAGER')")
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getUserById(id));
+    }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_MANAGER')")
+    @PostMapping
+    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(userService.createUser(request));
+    }
+    @PutMapping
+    public ResponseEntity<UserResponse> updateUser(@Valid @RequestBody UserUpdateRequest request) {
+        return ResponseEntity.ok(userService.updateUser(request));
+    }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PatchMapping("/{id}/roles")
+    public ResponseEntity<UserResponse> updateUserRoles(@PathVariable Long id,
+                                                        @RequestBody RoleUpdateRequest request) {
+        return ResponseEntity.ok(userService.updateRoles(id, request));
+    }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+        return ResponseEntity.ok("User deleted successfully");
+    }
+
+    @GetMapping("/invoices")
+    public ResponseEntity<PagedResponse<InvoiceDTO>>  getAllUserInvoices(
+            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_INVOICE, required = false) String sortBy,
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+    ){
+        return ResponseEntity.ok(invoiceService.findAllInvoices(authUtils.loggedInUser().getId(), null, null,null, pageNumber, pageSize, sortBy, sortOrder));
+    }
+
+    @GetMapping("/invoice/expenses/{invoiceId}")
+    public ResponseEntity<List<ExpenseResponse>> handleInvoiceExpenses(@PathVariable Long invoiceId) {
+        return ResponseEntity.ok(invoiceService.getExpenseList(invoiceId));
+    }
+
+    @GetMapping("/invoice/re-generate/{invoiceId}")
+    public ResponseEntity<Invoice> reGenerateInvoice(@PathVariable Long invoiceId) {
+        return ResponseEntity.ok(invoiceService.regenerateInvoice(invoiceId));
+    }
+
+    @GetMapping("/invoice/{invoiceId}")
+    public ResponseEntity<Invoice> getInvoiceById(@PathVariable Long invoiceId) {
+        return ResponseEntity.ok(invoiceService.getInvoiceById(invoiceId));
+    }
+
+}
