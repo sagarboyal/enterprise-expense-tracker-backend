@@ -1,124 +1,128 @@
-# Enterprise Expense Management System – Backend
+# Enterprise Expense Tracker — Backend
 
-## About the Project
-The **Enterprise Expense Management System** is a robust backend application designed to manage and track enterprise expenses.  
-It streamlines expense handling with features for employees, managers, and administrators, including:
+A Spring Boot REST API for enterprise expense management — handles authentication, multi-level approvals, analytics, audit logs, PDF generation, and email delivery.
 
-- ✅ Expense submission & tracking
-- ✅ Multi‑level approval workflow
-- ✅ Analytics & reporting for insights
+---
+🔗 **Frontend UI:** [enterprise-expense-tracker-ui](https://github.com/sagarboyal/enterprise-expense-tracker-ui)
+## Tech Stack
 
-Built with **Spring Boot** and secured with **JWT authentication**, the system ensures scalability, maintainability, and enterprise‑grade security.
+| | |
+|---|---|
+| Java + Spring Boot | Core framework |
+| Spring Security + JWT | Authentication & authorization |
+| Spring Data JPA + PostgreSQL | Persistence |
+| Cloudinary | File & receipt storage |
+| JavaMail | Email delivery |
+| Docker | Containerization |
+| Maven | Build tool |
 
 ---
 
-##  Features
--  **User Authentication & Role-Based Access** — secured with JWT
--  **Employee Expense Submissions** — with receipt/file attachments
--  **Manager & Admin Approval Workflows** — multi-level verification
--  **Expense Reports & Analytics Dashboards** — department/monthly trends
--  **Audit Logs & Activity Tracking** — compliance & transparency
--  **RESTful APIs** — easy frontend & third-party integration
--  **PDF Report Generation** — expense lists & summaries
--  **Email Delivery of Reports** — automated mailing of expense reports
--  **Work in Progress** — new features coming soon, open for collaboration 🤝
+## Features
+
+**Auth & RBAC** — JWT-based login, role-based access for employees, managers, and admins.
+
+**Expense Management** — Submit, edit, and track expenses with file/receipt attachments.
+
+**Approval Workflow** — Multi-level approval with full history and audit trail.
+
+**Analytics** — Monthly, weekly, and category-wise expense breakdowns.
+
+**Invoice Management** — Generate and track invoices with status management.
+
+**PDF Export** — Generate expense reports and email them automatically.
+
+**Audit Logs** — Full activity tracking for compliance and transparency.
+
+**Notifications** — In-app and email notifications for key events.
+
 ---
 
-## 🛠️ Tech Stack
-- **Backend Framework:** Spring Boot (Java)
-- **Database:** PostgreSQL (or MySQL as alternative)
-- **Authentication:** JWT (JSON Web Token)
-- **Build Tool:** Maven/Gradle
-- **Deployment:** Supports **Docker**, **Docker Compose**, and cloud platforms (AWS/GCP/Azure)
+## Getting Started
 
----
+**Prerequisites:** Java 17+, Maven, PostgreSQL, Docker (optional)
 
-## ⚙️ Installation & Setup
-
-### Prerequisites
-- Java 17+
-- Maven or Gradle
-- PostgreSQL/MySQL running locally or on cloud
-- Docker (optional, for containerized setup)
-
-### Steps
-
-# 1. Clone the repository
 ```bash
-  git clone https://github.com/sagarboyal/enterprise-expense-tracker-backend.git 
-  ```
-# 2. Open the Project in an Editor
-Open the cloned repository in your favorite editor (e.g., IntelliJ IDEA, VS Code).
+git clone https://github.com/sagarboyal/enterprise-expense-tracker-backend.git
+cd enterprise-expense-tracker-backend
+```
 
-###  3. Create a `.env` File
-Create a `.env` file in the **root project folder**:
+Create a `.env` file in the root directory:
 
-<img src="screenshots/img.png" alt="Project Structure" width="400"/>
-
-### 4. Add required `.env` properties
-
-Here’s a sample `.env` configuration (replace with your values):
-
-```dotenv
-# =======================================
-# 🗄️ Database Configuration
-# =======================================
+```env
+# Database
 DB_URL=jdbc:postgresql://localhost:5432/postgres
 DB_USERNAME=postgres
 DB_PASSWORD=postgres
 DRIVER_CLASS=org.postgresql.Driver
 DB_DIALECT=org.hibernate.dialect.PostgreSQLDialect
 
-# =======================================
-# 🔐 JWT Configuration
-# =======================================
+# JWT
 JWT_SECRET=your_jwt_secret_key
-JWT_EXP_TIME=3600000   # 1 hour (ms)
+JWT_EXP_TIME=3600000
 
-# =======================================
-# 📧 Mail Configuration
-# =======================================
+# Mail
 MAIL_USERNAME=your_email@example.com
 MAIL_PASSWORD=your_email_password
 
-# =======================================
-# 🌐 Frontend Integration (optional)
-# =======================================
+# Frontend
 FRONT_END_URL=http://localhost:5173
 
-# =======================================
-# ☁️ Cloudinary Setup
-# =======================================
+# Cloudinary
 CLOUD_NAME=your_cloud_name
 API_KEY=your_api_key
 API_SECRET=your_api_secret
 MAX_FILE_SIZE=2MB
 ```
-### 5. Configure it with your application configuration
- like in inteliJ
 
- <img src="screenshots/img_2.png" alt="Project Structure" width="350"/>
+```bash
+./mvnw spring-boot:run
+```
 
-Then click on Modify option
+**Using Docker:**
 
-<img src="screenshots/img_3.png" alt="Project Structure" width="450s"/>
-
-Enable Environment Variable
-
-![img_4.png](screenshots/img_4.png)
-
-Add Class Path where u place the `.env` file
-
-![img_5.png](screenshots/img_5.png)
+```bash
+docker build -t expense-tracker-backend .
+docker run -p 8080:8080 --env-file .env expense-tracker-backend
+```
 
 ---
 
-## 🎉 Congratulations!
+## Project Structure
 
-You’ve successfully set up and configured the **Enterprise Expense Management System - Backend**.
-
-Now you can run your application and start managing expenses with ease:
-
-```bash
- ./mvnw spring-boot:run
 ```
+src/main/java/
+├── controller/       → REST endpoints (Auth, Expense, Approval, Analytics, Admin...)
+├── service/          → Business logic interfaces & implementations
+├── entity/           → JPA entities (User, Expense, Approval, Invoice, AuditLog...)
+├── dto/              → Data transfer objects
+├── payload/          → Request & response wrappers
+├── repository/       → Spring Data repositories
+├── specification/    → Dynamic query filters
+├── security/         → SecurityConfig, JWT filter & utils
+├── jwt/              → JWT auth entry point, filter, utilities
+├── cloudinary/       → File upload config & service
+└── utils/            → Auth utils, PDF generation, object mapping
+```
+
+---
+
+## Roadmap
+
+- [ ] Swagger / OpenAPI documentation
+- [ ] Unit & integration tests
+- [ ] Multi-currency support
+- [ ] CI/CD pipeline
+
+---
+
+## Contact
+
+- Email: sagarboyal.024@gmail.com
+- Issues: [GitHub Issues](https://github.com/sagarboyal/enterprise-expense-tracker-backend/issues)
+
+---
+
+## License
+
+[MIT](LICENSE)
