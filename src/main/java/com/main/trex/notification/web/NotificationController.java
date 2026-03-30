@@ -1,0 +1,60 @@
+package com.main.trex.notification.web;
+
+import com.main.trex.shared.config.AppConstants;
+import com.main.trex.notification.entity.Notification;
+import com.main.trex.shared.payload.response.PagedResponse;
+import com.main.trex.notification.service.NotificationService;
+import com.main.trex.identity.util.AuthUtils;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Collections;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/notification")
+@RequiredArgsConstructor
+public class NotificationController {
+    private final NotificationService notificationService;
+    private final AuthUtils authUtils;
+
+    @GetMapping
+    public ResponseEntity<PagedResponse<Notification>> getNotifications(
+            @RequestParam(name= "status", required = false) Boolean status,
+            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(name = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY_EXPENSES, required = false) String sortBy,
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+
+    ){
+        return ResponseEntity.ok(notificationService
+                .getNotifications(authUtils.loggedInUser().getId(), status, pageNumber, pageSize, sortBy, sortOrder));
+    }
+
+    @PatchMapping("/status/{id}")
+    public ResponseEntity<Notification> updateNotificationStatus(@PathVariable Long id) {
+        return ResponseEntity.ok(notificationService.updateNotificationStatus(id));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteNotification(@PathVariable Long id){
+        notificationService.deleteNotification(id);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    @GetMapping("/unread-count")
+    public ResponseEntity<Map<String, Long>> getUnreadCount() {
+        long count = notificationService.getUnreadCount();
+        return ResponseEntity.ok(Collections.singletonMap("unreadCount", count));
+    }
+
+    @PutMapping("/mark-all-read")
+    public ResponseEntity<Void> markAllAsRead() {
+        notificationService.markAllAsRead();
+        return ResponseEntity.ok().build();
+    }
+}
+
+

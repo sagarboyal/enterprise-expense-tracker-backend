@@ -1,5 +1,21 @@
-FROM openjdk:17-alpine
+FROM maven:3.9.9-eclipse-temurin-17 AS build
 WORKDIR /app
-COPY target/enterpriseexpensemanagementsystem-0.0.1-SNAPSHOT.jar trex-app.jar
+
+COPY pom.xml .
+COPY .mvn .mvn
+COPY mvnw mvnw
+COPY mvnw.cmd mvnw.cmd
+RUN chmod +x mvnw
+RUN ./mvnw -q -DskipTests dependency:go-offline
+
+COPY src src
+RUN ./mvnw -q -DskipTests package
+
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+
+COPY --from=build /app/target/enterpriseexpensemanagementsystem-0.0.1-SNAPSHOT.jar app.jar
+
 EXPOSE 8080
-CMD [ "java", "-jar", "trex-app.jar"]
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

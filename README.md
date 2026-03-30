@@ -12,6 +12,20 @@ Built with **Spring Boot** and secured with **JWT authentication**, the system e
 
 ---
 
+## Modular Monolith Layout
+The application is now organized as a modular monolith inside a single Spring Boot deployable:
+
+- `com.main.trex.identity`: authentication, users, roles, JWT/security, password reset
+- `com.main.trex.expense`: expenses, approvals, invoices, documents, analytics
+- `com.main.trex.catalog`: expense categories
+- `com.main.trex.notification`: in-app notifications
+- `com.main.trex.support`: audit logs, contact requests, mail, admin support endpoints
+- `com.main.trex.shared`: shared config, exception handling, common payloads, infrastructure utilities
+
+This keeps one codebase and one deployment unit while making module ownership explicit in the package structure.
+
+---
+
 ##  Features
 -  **User Authentication & Role-Based Access** — secured with JWT
 -  **Employee Expense Submissions** — with receipt/file attachments
@@ -122,3 +136,25 @@ Now you can run your application and start managing expenses with ease:
 ```bash
  ./mvnw spring-boot:run
 ```
+
+## Docker Compose
+The repository now includes a `docker-compose.yml` that starts:
+
+- `db`: PostgreSQL 16
+- `pgadmin`: pgAdmin 4 for database access
+
+### Quick start
+1. Copy `.env.docker.example` to `.env` or update your existing `.env`.
+2. Make sure `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, mail, and Cloudinary values are set.
+3. Start the stack:
+
+```bash
+docker compose up
+```
+
+pgAdmin is exposed on `http://localhost:5050` by default. Sign in with `PGADMIN_DEFAULT_EMAIL` and `PGADMIN_DEFAULT_PASSWORD`, then register the database server with:
+
+- Host: `db`
+- Port: `5432`
+- Username: `DB_USERNAME`
+- Password: `DB_PASSWORD`

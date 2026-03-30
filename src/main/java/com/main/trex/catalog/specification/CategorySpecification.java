@@ -1,0 +1,18 @@
+package com.main.trex.catalog.specification;
+
+import com.main.trex.catalog.entity.Category;
+import org.springframework.data.jpa.domain.Specification;
+
+public class CategorySpecification {
+    public static Specification<Category> hasName(String name) {
+        return (root, criteriaQuery, criteriaBuilder) ->
+                name == null ? criteriaBuilder.conjunction() :
+                criteriaBuilder.equal(root.get("name"), name);
+    }
+    public static Specification<Category> hasId(Long id) {
+        return (root, criteriaQuery, criteriaBuilder) ->
+                id != null ? criteriaBuilder.equal(root.get("id"), id) : criteriaBuilder.conjunction();
+    }
+}
+
+
