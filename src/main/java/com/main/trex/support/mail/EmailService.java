@@ -4,6 +4,7 @@ import com.main.trex.expense.entity.Invoice;
 public interface EmailService {
     void sendPasswordResetEmail(String email, String resetUrl);
     void sendInvoiceEmail(Invoice invoice, String email);
+    void sendOrganizationInviteEmail(String email, String organizationName, String role, String acceptUrl);
 }
 
 

@@ -32,6 +32,22 @@ public class EmailServiceImpl implements EmailService {
         mailSender.send(message);
     }
 
+    @Override
+    public void sendOrganizationInviteEmail(String email, String organizationName, String role, String acceptUrl) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Organization Invitation - " + organizationName);
+        message.setText("""
+                You have been invited to join organization '%s' as %s.
+
+                Accept the invitation using the link below:
+                %s
+
+                If you were not expecting this invite, you can ignore this email.
+                """.formatted(organizationName, role, acceptUrl));
+        mailSender.send(message);
+    }
+
 
     @Override
     public void sendInvoiceEmail(Invoice invoice, String email) {
