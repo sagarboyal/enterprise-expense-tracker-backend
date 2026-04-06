@@ -3,6 +3,7 @@ package com.main.trex.expense.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.main.trex.catalog.entity.Category;
 import com.main.trex.identity.entity.User;
+import com.main.trex.organization.entity.Organization;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -43,6 +44,15 @@ public class Expense {
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ExpenseWorkspaceType workspaceType = ExpenseWorkspaceType.PERSONAL;
+
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "organization_id")
+    private Organization organization;
 
     @JsonIgnore
     @OneToMany(mappedBy = "expense", cascade = CascadeType.ALL, orphanRemoval = true)

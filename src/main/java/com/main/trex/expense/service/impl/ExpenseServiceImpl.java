@@ -7,6 +7,7 @@ import com.main.trex.expense.entity.Approval;
 import com.main.trex.expense.entity.ApprovalLevel;
 import com.main.trex.expense.entity.ApprovalStatus;
 import com.main.trex.expense.entity.Expense;
+import com.main.trex.expense.entity.ExpenseWorkspaceType;
 import com.main.trex.expense.entity.FileDocument;
 import com.main.trex.expense.entity.Invoice;
 import com.main.trex.shared.exception.ApiException;
@@ -24,6 +25,11 @@ import com.main.trex.identity.repository.UserRepository;
 import com.main.trex.shared.payload.response.PagedResponse;
 import com.main.trex.notification.entity.Notification;
 import com.main.trex.notification.service.NotificationService;
+import com.main.trex.organization.entity.Organization;
+import com.main.trex.organization.entity.OrganizationMember;
+import com.main.trex.organization.entity.OrganizationMemberStatus;
+import com.main.trex.organization.repository.OrganizationMemberRepository;
+import com.main.trex.organization.repository.OrganizationRepository;
 import com.main.trex.expense.specification.ExpenseSpecification;
 import com.main.trex.identity.util.AuthUtils;
 import com.main.trex.shared.util.ObjectMapperUtils;
@@ -63,8 +69,10 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final InvoiceService invoiceService;
     private final FileDocumentRepository fileDocumentRepository;
     private final CloudinaryService cloudinaryService;
+    private final OrganizationRepository organizationRepository;
+    private final OrganizationMemberRepository organizationMemberRepository;
 
-    public ExpenseServiceImpl(ExpenseRepository expenseRepository, CategoryRepository categoryRepository, ModelMapper modelMapper, UserRepository userRepository, AuditLogService auditLogService, AuthUtils authUtils, ObjectMapperUtils objectMapperUtils, NotificationService notificationService, ApprovalRepository approvalRepository, InvoiceService invoiceService, FileDocumentRepository fileDocumentRepository, CloudinaryService cloudinaryService) {
+    public ExpenseServiceImpl(ExpenseRepository expenseRepository, CategoryRepository categoryRepository, ModelMapper modelMapper, UserRepository userRepository, AuditLogService auditLogService, AuthUtils authUtils, ObjectMapperUtils objectMapperUtils, NotificationService notificationService, ApprovalRepository approvalRepository, InvoiceService invoiceService, FileDocumentRepository fileDocumentRepository, CloudinaryService cloudinaryService, OrganizationRepository organizationRepository, OrganizationMemberRepository organizationMemberRepository) {
         this.expenseRepository = expenseRepository;
         this.categoryRepository = categoryRepository;
         this.modelMapper = modelMapper;
@@ -77,6 +85,8 @@ public class ExpenseServiceImpl implements ExpenseService {
         this.invoiceService = invoiceService;
         this.fileDocumentRepository = fileDocumentRepository;
         this.cloudinaryService = cloudinaryService;
+        this.organizationRepository = organizationRepository;
+        this.organizationMemberRepository = organizationMemberRepository;
     }
 
     @Override
@@ -89,13 +99,8 @@ public class ExpenseServiceImpl implements ExpenseService {
         expense.setCategory(category);
         expense.setUser(user);
         expense.setDescription(dto.getDescription());
-        Approval approvalRecords = Approval.builder()
-                .userId(user.getId())
-                .level(ApprovalLevel.MANAGER)
-                .status(ApprovalStatus.PENDING)
-                .actionTime(LocalDateTime.now())
-                .comment("Wait for manager approval!")
-                .build();
+        applyExpenseContext(expense, dto, user);
+        Approval approvalRecords = createInitialApproval(expense, user);
 
         if(dto.getExpenseDate() == null) {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -103,8 +108,10 @@ public class ExpenseServiceImpl implements ExpenseService {
             expense.setExpenseDate(localDate);
         }
 
-        approvalRecords.setExpense(expense);
-        expense.getApprovals().add(approvalRecords);
+        if (approvalRecords != null) {
+            approvalRecords.setExpense(expense);
+            expense.getApprovals().add(approvalRecords);
+        }
         expense = expenseRepository.save(expense); // Only one save
 
 
@@ -114,9 +121,12 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .amount(expense.getAmount())
                 .expenseDate(expense.getExpenseDate())
                 .category(category.getName())
-                .status(approvalRecords.getStatus())
-                .level(approvalRecords.getLevel())
-                .message(approvalRecords.getComment())
+                .status(approvalRecords != null ? approvalRecords.getStatus() : null)
+                .level(approvalRecords != null ? approvalRecords.getLevel() : null)
+                .message(approvalRecords != null ? approvalRecords.getComment() : null)
+                .workspaceType(expense.getWorkspaceType())
+                .organizationId(expense.getOrganization() != null ? expense.getOrganization().getId() : null)
+                .organizationName(expense.getOrganization() != null ? expense.getOrganization().getName() : null)
                 .build();
 
         auditLogService.log(AuditLog.builder()
@@ -244,6 +254,9 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .status(latest != null ? latest.getStatus() : null)
                 .level(latest != null ? latest.getLevel() : null)
                 .message(latest != null ? latest.getComment() : null)
+                .workspaceType(expense.getWorkspaceType())
+                .organizationId(expense.getOrganization() != null ? expense.getOrganization().getId() : null)
+                .organizationName(expense.getOrganization() != null ? expense.getOrganization().getName() : null)
                 .build();
 
         auditLog.setAction(approvalRequest.getDecision().equalsIgnoreCase("approve")
@@ -256,8 +269,10 @@ public class ExpenseServiceImpl implements ExpenseService {
             if (UserUtils.isAdmin(user)) {
                 invoiceService.generateInvoice(expense.getUser(), expense);
                 message = "🎉 Congratulations! Your expense with ID " + expense.getId() + " has been approved by Admin.";
+            } else if (UserUtils.isFinance(user)) {
+                message = "✅ Your expense with ID " + expense.getId() + " has been approved by Finance. Please wait for Admin approval.";
             } else if (UserUtils.isManager(user)) {
-                message = "✅ Your expense with ID " + expense.getId() + " has been approved by Manager. Please wait for Admin approval.";
+                message = "✅ Your expense with ID " + expense.getId() + " has been approved by Manager. Please wait for Finance review.";
             } else {
                 message = "✅ Your expense with ID " + expense.getId() + " has been approved.";
             }
@@ -328,6 +343,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         if (level == null || level.isEmpty()) return null;
         return switch (level.toLowerCase()) {
             case "manager" -> ApprovalLevel.MANAGER;
+            case "finance" -> ApprovalLevel.FINANCE;
             case "admin" -> ApprovalLevel.ADMIN;
             default -> null;
         };
@@ -370,17 +386,15 @@ public class ExpenseServiceImpl implements ExpenseService {
         expense.setCategory(category);
         expense.setUser(authUtils.loggedInUser());
         expense.setDescription(dto.getDescription());
+        applyExpenseContext(expense, dto, expense.getUser());
 
-        Approval approvalRecords = Approval.builder()
-                .userId(expense.getUser().getId())
-                .level(ApprovalLevel.MANAGER)
-                .status(ApprovalStatus.PENDING)
-                .actionTime(LocalDateTime.now())
-                .comment("Wait for manager approval!")
-                .build();
-        approvalRecords.setExpense(expense);
-        expense.getApprovals().add(approvalRecords);
-        return expenseRepository.save(expense);
+        Approval approvalRecords = createInitialApproval(expense, expense.getUser());
+        if (approvalRecords != null) {
+            approvalRecords.setExpense(expense);
+            expense.getApprovals().add(approvalRecords);
+        }
+
+        return expense;
     }
 
     private PagedResponse<ExpenseResponse> getExpensePagedResponse(Page<Expense> expensePage, List<Expense> expenses) {
@@ -419,6 +433,9 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .status(latest != null ? latest.getStatus() : null)
                 .level(latest != null ? latest.getLevel() : null)
                 .message(latest != null ? latest.getComment() : null)
+                .workspaceType(expense.getWorkspaceType())
+                .organizationId(expense.getOrganization() != null ? expense.getOrganization().getId() : null)
+                .organizationName(expense.getOrganization() != null ? expense.getOrganization().getName() : null)
                 .build();
     }
 
@@ -433,6 +450,10 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     private Approval resolveApprovalStatus(User user, Expense expense, String decision) {
+        if (expense.getWorkspaceType() == ExpenseWorkspaceType.PERSONAL) {
+            throw new ApiException("Personal expenses do not require approval.");
+        }
+
         boolean isApproved = decision.equalsIgnoreCase("approve");
 
         Approval approval = Approval.builder()
@@ -454,30 +475,94 @@ public class ExpenseServiceImpl implements ExpenseService {
         if (UserUtils.isAdmin(user)) {
             if (latest != null && latest.getStatus() == ApprovalStatus.REJECTED) {
                 throw new ApiException("Expense approval is already rejected.");
-            } else if (latest != null && (latest.getLevel() != ApprovalLevel.MANAGER || latest.getStatus() != ApprovalStatus.APPROVED)) {
-                throw new ApiException("Manager approval is required before admin can approve.");
+            } else if (latest != null && (latest.getLevel() != ApprovalLevel.FINANCE || latest.getStatus() != ApprovalStatus.APPROVED)) {
+                throw new ApiException("Finance approval is required before admin can approve.");
             }
 
             approval.setLevel(ApprovalLevel.ADMIN);
             approval.setComment(isApproved
                     ? "Final review passed. Approved by admin."
                     : "Final approval denied. Expense not aligned with financial rules.");
+        } else if (UserUtils.isFinance(user)) {
+            if (latest != null && latest.getStatus() == ApprovalStatus.REJECTED) {
+                throw new ApiException("Expense approval is already rejected.");
+            } else if (latest != null && (latest.getLevel() != ApprovalLevel.MANAGER || latest.getStatus() != ApprovalStatus.APPROVED)) {
+                throw new ApiException("Manager approval is required before finance can approve.");
+            }
+
+            approval.setLevel(ApprovalLevel.FINANCE);
+            approval.setComment(isApproved
+                    ? "Financial review completed. Forwarded to admin for final approval."
+                    : "Rejected by finance due to policy, accounting, or reimbursement rules.");
         } else if (UserUtils.isManager(user)) {
             if (latest != null && latest.getStatus() == ApprovalStatus.REJECTED) {
                 throw new ApiException("Expense approval is already rejected.");
-            } else if (latest != null && (latest.getLevel() == ApprovalLevel.MANAGER && latest.getStatus() == ApprovalStatus.APPROVED)){
-                throw new ApiException("Manager cannot reject this expense. It's either already reviewed or not in your level.");
+            } else if (latest != null && latest.getLevel() == ApprovalLevel.MANAGER && latest.getStatus() == ApprovalStatus.APPROVED) {
+                throw new ApiException("Manager already reviewed this expense.");
             }
 
             approval.setLevel(ApprovalLevel.MANAGER);
             approval.setComment(isApproved
-                    ? "Initial verification successful. Forwarded to admin for final approval."
+                    ? "Initial verification successful. Forwarded to finance for financial review."
                     : "Rejected for exceeding department-level budget.");
         } else {
             throw new ApiException("User has no valid approval role.");
         }
 
         return approval;
+    }
+
+    private void applyExpenseContext(Expense expense, ExpenseDTO dto, User user) {
+        ExpenseWorkspaceType requestedType = dto.getWorkspaceType();
+
+        if (requestedType == null) {
+            requestedType = dto.getOrganizationId() != null
+                    ? ExpenseWorkspaceType.ORGANIZATION
+                    : ExpenseWorkspaceType.PERSONAL;
+        }
+
+        if (requestedType == ExpenseWorkspaceType.ORGANIZATION) {
+            if (dto.getOrganizationId() == null) {
+                throw new ApiException("Organization expense requires organizationId.");
+            }
+
+            Organization organization = organizationRepository.findById(dto.getOrganizationId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
+            OrganizationMember membership = organizationMemberRepository
+                    .findByOrganizationIdAndUserId(organization.getId(), user.getId())
+                    .orElseThrow(() -> new ApiException("User is not a member of the selected organization."));
+
+            if (membership.getStatus() != OrganizationMemberStatus.ACTIVE) {
+                throw new ApiException("Organization membership is not active.");
+            }
+
+            expense.setWorkspaceType(ExpenseWorkspaceType.ORGANIZATION);
+            expense.setOrganization(organization);
+            return;
+        }
+
+        expense.setWorkspaceType(ExpenseWorkspaceType.PERSONAL);
+        expense.setOrganization(null);
+    }
+
+    private Approval createInitialApproval(Expense expense, User user) {
+        if (expense.getWorkspaceType() == ExpenseWorkspaceType.PERSONAL) {
+            return Approval.builder()
+                    .userId(user.getId())
+                    .level(ApprovalLevel.PERSONAL)
+                    .status(ApprovalStatus.APPROVED)
+                    .actionTime(LocalDateTime.now())
+                    .comment("Personal expense recorded.")
+                    .build();
+        }
+
+        return Approval.builder()
+                .userId(user.getId())
+                .level(ApprovalLevel.MANAGER)
+                .status(ApprovalStatus.PENDING)
+                .actionTime(LocalDateTime.now())
+                .comment("Wait for manager approval!")
+                .build();
     }
 }
 

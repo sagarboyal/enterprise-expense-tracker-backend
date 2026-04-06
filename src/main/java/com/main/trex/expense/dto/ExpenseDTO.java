@@ -1,5 +1,6 @@
 package com.main.trex.expense.dto;
 
+import com.main.trex.expense.entity.ExpenseWorkspaceType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -31,6 +32,8 @@ public class ExpenseDTO {
 
     @NotNull(message = "Category ID is required")
     private Long categoryId;
+    private ExpenseWorkspaceType workspaceType;
+    private Long organizationId;
 }
 
 
