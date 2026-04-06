@@ -57,7 +57,7 @@ public class ExpenseController {
                 pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER') or hasRole('FINANCE')")
     @GetMapping("/request-list")
     public ResponseEntity<PagedResponse<ExpenseResponse>> getAllExpenses(
             @RequestParam(name = "userId", required = false) Long userId,
@@ -99,7 +99,7 @@ public class ExpenseController {
         return ResponseEntity.ok(expenseService.updateExpense(request));
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER') or hasRole('FINANCE')")
     @PutMapping("/approve/{id}")
     public ResponseEntity<ExpenseResponse> approveExpense(@Valid @RequestBody ApprovalRequest request,
                                                           @PathVariable Long id) {

@@ -19,6 +19,10 @@ public class UserUtils {
         return hasRole(user, Roles.ROLE_MANAGER);
     }
 
+    public static boolean isFinance(User user) {
+        return hasRole(user, Roles.ROLE_FINANCE);
+    }
+
     public static boolean isEmployee(User user) {
         return hasRole(user, Roles.ROLE_EMPLOYEE);
     }

@@ -1,7 +1,6 @@
 package com.main.trex.identity.service.impl;
 
 import com.main.trex.expense.entity.Expense;
-import com.main.trex.expense.entity.Invoice;
 import com.main.trex.expense.repository.ExpenseRepository;
 import com.main.trex.expense.repository.InvoiceRepository;
 import com.main.trex.shared.exception.ApiException;
@@ -237,6 +236,8 @@ public class UserServiceImpl implements UserService {
 
         Role managerRole = roleRepository.findByRoleName(Roles.ROLE_MANAGER)
                 .orElseThrow(() -> new ApiException("Manager Role Not Found"));
+        Role financeRole = roleRepository.findByRoleName(Roles.ROLE_FINANCE)
+                .orElseThrow(() -> new ApiException("Finance Role Not Found"));
         Role adminRole = roleRepository.findByRoleName(Roles.ROLE_ADMIN)
                 .orElseThrow(() -> new ApiException("Admin Role Not Found"));
 
@@ -249,11 +250,20 @@ public class UserServiceImpl implements UserService {
                     if(UserUtils.isEmployee(user))
                         user.getRoles().add(managerRole);
                     break;
+                case "finance":
+                    if (UserUtils.isEmployee(user)) {
+                        user.getRoles().add(financeRole);
+                    }
+                    break;
                 case "admin":
                     if (UserUtils.isEmployee(user)) {
+                        user.getRoles().add(financeRole);
                         user.getRoles().add(managerRole);
                         user.getRoles().add(adminRole);
                     } else if (UserUtils.isManager(user)) {
+                        user.getRoles().add(financeRole);
+                        user.getRoles().add(adminRole);
+                    } else if (UserUtils.isFinance(user)) {
                         user.getRoles().add(adminRole);
                     }
                     break;
@@ -265,16 +275,29 @@ public class UserServiceImpl implements UserService {
                 case "manager":
                     if (UserUtils.isAdmin(user)) {
                         user.getRoles().remove(adminRole);
+                    } else if (UserUtils.isFinance(user)) {
+                        user.getRoles().remove(financeRole);
                     } else {
-                        throw new ApiException("Cannot demote to manager from non-admin");
+                        throw new ApiException("Cannot demote to manager from the current role");
+                    }
+                    break;
+                case "finance":
+                    if (UserUtils.isAdmin(user)) {
+                        user.getRoles().remove(adminRole);
+                    } else {
+                        throw new ApiException("Cannot demote to finance from non-admin");
                     }
                     break;
                 case "employee":
                     if (UserUtils.isManager(user)) {
                         user.getRoles().remove(managerRole);
                     }
+                    if (UserUtils.isFinance(user)) {
+                        user.getRoles().remove(financeRole);
+                    }
                     if (UserUtils.isAdmin(user)) {
                         user.getRoles().remove(adminRole);
+                        user.getRoles().remove(financeRole);
                         user.getRoles().remove(managerRole);
                     }
                     break;

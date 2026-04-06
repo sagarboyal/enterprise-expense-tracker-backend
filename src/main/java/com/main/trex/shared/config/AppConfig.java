@@ -30,6 +30,11 @@ public class AppConfig {
                         Role newUserRole = new Role(Roles.ROLE_ADMIN);
                         return roleRepository.save(newUserRole);
                     });
+            Role roleFinance = roleRepository.findByRoleName(Roles.ROLE_FINANCE)
+                    .orElseGet(() -> {
+                        Role newUserRole = new Role(Roles.ROLE_FINANCE);
+                        return roleRepository.save(newUserRole);
+                    });
             Role roleManager = roleRepository.findByRoleName(Roles.ROLE_MANAGER)
                     .orElseGet(() -> {
                         Role newUserRole = new Role(Roles.ROLE_MANAGER);
@@ -41,7 +46,8 @@ public class AppConfig {
                         return roleRepository.save(newUserRole);
                     });
 
-            Set<Role> adminRoles = Set.of(roleAdmin, roleManager, roleEmployee);
+            Set<Role> adminRoles = Set.of(roleAdmin, roleFinance, roleManager, roleEmployee);
+            Set<Role> financeRoles = Set.of(roleFinance, roleEmployee);
             Set<Role> managerRoles = Set.of(roleManager, roleEmployee);
             Set<Role> employeeRoles = Set.of(roleEmployee);
 
@@ -52,6 +58,10 @@ public class AppConfig {
             if (!userRepository.existsByEmail("manager@gmail.com")) {
                 User admin = new User("manager", "manager@gmail.com", passwordEncoder.encode("manager"));
                 userRepository.save(admin);
+            }
+            if (!userRepository.existsByEmail("finance@gmail.com")) {
+                User finance = new User("finance", "finance@gmail.com", passwordEncoder.encode("finance"));
+                userRepository.save(finance);
             }
             if (!userRepository.existsByEmail("user@gmail.com")) {
                 User admin = new User("user", "user@gmail.com", passwordEncoder.encode("user"));
@@ -65,6 +75,10 @@ public class AppConfig {
             userRepository.findByEmail("manager@gmail.com").ifPresent(manager -> {
                 manager.setRoles(managerRoles);
                 userRepository.save(manager);
+            });
+            userRepository.findByEmail("finance@gmail.com").ifPresent(finance -> {
+                finance.setRoles(financeRoles);
+                userRepository.save(finance);
             });
             userRepository.findByEmail("user@gmail.com").ifPresent(user -> {
                 user.setRoles(employeeRoles);
