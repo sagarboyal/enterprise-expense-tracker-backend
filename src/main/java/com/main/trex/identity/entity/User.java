@@ -2,6 +2,9 @@ package com.main.trex.identity.entity;
 
 import com.main.trex.expense.entity.Expense;
 import com.main.trex.notification.entity.Notification;
+import com.main.trex.organization.entity.Organization;
+import com.main.trex.organization.entity.OrganizationInvite;
+import com.main.trex.organization.entity.OrganizationMember;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -47,6 +50,15 @@ public class User {
             orphanRemoval = true
     )
     private List<Notification> notifications = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", orphanRemoval = true)
+    private List<OrganizationMember> organizationMemberships = new ArrayList<>();
+
+    @OneToMany(mappedBy = "invitedBy", orphanRemoval = true)
+    private List<OrganizationInvite> organizationInvitesSent = new ArrayList<>();
+
+    @OneToMany(mappedBy = "createdBy", orphanRemoval = true)
+    private List<Organization> organizationsCreated = new ArrayList<>();
 
     public User(String fullName, String email, String password) {
         this.fullName = fullName;
