@@ -9,7 +9,6 @@ import com.main.trex.expense.entity.ApprovalStatus;
 import com.main.trex.expense.entity.Expense;
 import com.main.trex.expense.entity.ExpenseWorkspaceType;
 import com.main.trex.expense.entity.FileDocument;
-import com.main.trex.expense.entity.Invoice;
 import com.main.trex.shared.exception.ApiException;
 import com.main.trex.shared.exception.ResourceNotFoundException;
 import com.main.trex.expense.payload.request.ApprovalRequest;

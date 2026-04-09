@@ -1,6 +1,7 @@
 package com.main.trex.identity.web;
 
 import com.main.trex.notification.entity.Notification;
+import com.main.trex.identity.entity.AuthProvider;
 import com.main.trex.identity.entity.Role;
 import com.main.trex.identity.entity.Roles;
 import com.main.trex.identity.entity.User;
@@ -88,6 +89,7 @@ public class AuthController {
         user.setFullName(signUpRequest.getFullName());
         user.setEmail(signUpRequest.getEmail());
         user.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
+        user.setProvider(AuthProvider.LOCAL);
 
         Role employeeRole = roleRepository.findByRoleName(Roles.ROLE_EMPLOYEE)
                 .orElseThrow(() -> new ResourceNotFoundException("Error: Role does not exist!"));
@@ -102,6 +104,11 @@ public class AuthController {
         );
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+    }
+
+    @GetMapping("/public/oauth2/google")
+    public ResponseEntity<Map<String, String>> getGoogleLoginUrl() {
+        return ResponseEntity.ok(Map.of("authorizationUrl", "/oauth2/authorization/google"));
     }
 
     @GetMapping("/user")

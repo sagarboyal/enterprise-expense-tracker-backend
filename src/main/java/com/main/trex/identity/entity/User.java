@@ -27,6 +27,11 @@ public class User {
     private String email;
     private String password;
 
+    @Enumerated(EnumType.STRING)
+    private AuthProvider provider = AuthProvider.LOCAL;
+
+    private String providerId;
+
     @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "user_roles",

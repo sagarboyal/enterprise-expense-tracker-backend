@@ -5,6 +5,7 @@ import com.main.trex.expense.repository.ExpenseRepository;
 import com.main.trex.expense.repository.InvoiceRepository;
 import com.main.trex.shared.exception.ApiException;
 import com.main.trex.shared.exception.ResourceNotFoundException;
+import com.main.trex.identity.entity.AuthProvider;
 import com.main.trex.identity.entity.PasswordResetToken;
 import com.main.trex.identity.entity.Role;
 import com.main.trex.identity.entity.Roles;
@@ -71,6 +72,7 @@ public class UserServiceImpl implements UserService {
 
         User user = modelMapper.map(request, User.class);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setProvider(AuthProvider.LOCAL);
         user.setRoles(Set.of(defaultRole));
         user = userRepository.save(user);
 

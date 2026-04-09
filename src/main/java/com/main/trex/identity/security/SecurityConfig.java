@@ -3,6 +3,8 @@ package com.main.trex.identity.security;
 import com.main.trex.identity.jwt.AuthEntryPointJwt;
 import com.main.trex.identity.jwt.JwtAccessDeniedHandler;
 import com.main.trex.identity.jwt.JwtFilter;
+import com.main.trex.identity.security.oauth2.OAuth2AuthenticationFailureHandler;
+import com.main.trex.identity.security.oauth2.OAuth2AuthenticationSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -34,6 +36,8 @@ public class SecurityConfig {
     private final JwtFilter jwtFilter;
     private final AuthEntryPointJwt unauthorizedHandler;
     private final JwtAccessDeniedHandler accessDeniedHandler;
+    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
 
     @Bean
     SecurityFilterChain authenticationFilterChain(HttpSecurity http) throws Exception {
@@ -43,10 +47,14 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                                .requestMatchers("api/auth/**", "api/admin/users/invoice/**").permitAll()
+                                .requestMatchers("/api/auth/**", "/api/admin/users/invoice/**", "/oauth2/**", "/login/oauth2/**").permitAll()
                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                                 .requestMatchers("/api/manager/**").hasRole("MANAGER")
                                 .anyRequest().authenticated())
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(oAuth2AuthenticationSuccessHandler)
+                        .failureHandler(oAuth2AuthenticationFailureHandler)
+                )
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(unauthorizedHandler)
                                 .accessDeniedHandler(accessDeniedHandler)
@@ -55,7 +63,7 @@ public class SecurityConfig {
                 .build();
     }
     @Bean
-    public PasswordEncoder passwordEncoder() {
+    public static PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 

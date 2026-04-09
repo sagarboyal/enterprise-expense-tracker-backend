@@ -10,20 +10,28 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Configuration
 public class AppConfig {
+    private static final String ROLE_CHECK_CONSTRAINT_NAME = "roles_role_name_check";
+
     @Bean
     public ModelMapper modelMapper() {
         return new ModelMapper();
     }
+
     @Bean
     public CommandLineRunner commandLineRunner(RoleRepository roleRepository,
                                                UserRepository userRepository,
-                                               PasswordEncoder passwordEncoder) {
+                                               PasswordEncoder passwordEncoder,
+                                               JdbcTemplate jdbcTemplate) {
         return args -> {
+            synchronizeRoleConstraint(jdbcTemplate);
 
             Role roleAdmin = roleRepository.findByRoleName(Roles.ROLE_ADMIN)
                     .orElseGet(() -> {
@@ -85,6 +93,19 @@ public class AppConfig {
                 userRepository.save(user);
             });
         };
+    }
+
+    private void synchronizeRoleConstraint(JdbcTemplate jdbcTemplate) {
+        String allowedRoles = Stream.of(Roles.values())
+                .map(Roles::name)
+                .map(role -> "'" + role + "'")
+                .collect(Collectors.joining(", "));
+
+        jdbcTemplate.execute("ALTER TABLE roles DROP CONSTRAINT IF EXISTS " + ROLE_CHECK_CONSTRAINT_NAME);
+        jdbcTemplate.execute(
+                "ALTER TABLE roles ADD CONSTRAINT " + ROLE_CHECK_CONSTRAINT_NAME +
+                        " CHECK (role_name IN (" + allowedRoles + "))"
+        );
     }
 }
 
