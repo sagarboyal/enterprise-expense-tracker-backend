@@ -27,6 +27,7 @@ import com.main.trex.notification.service.NotificationService;
 import com.main.trex.organization.entity.Organization;
 import com.main.trex.organization.entity.OrganizationMember;
 import com.main.trex.organization.entity.OrganizationMemberStatus;
+import com.main.trex.organization.entity.OrganizationRole;
 import com.main.trex.organization.repository.OrganizationMemberRepository;
 import com.main.trex.organization.repository.OrganizationRepository;
 import com.main.trex.expense.specification.ExpenseSpecification;
@@ -36,7 +37,6 @@ import com.main.trex.shared.cloudinary.CloudinaryService;
 import com.main.trex.support.audit.entity.AuditLog;
 import com.main.trex.support.audit.service.AuditLogService;
 import com.main.trex.expense.util.pdfGeneration.PdfExportUtils;
-import com.main.trex.identity.util.UserUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -50,7 +50,9 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -145,10 +147,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         Expense expense = getExpenseById(dto.getId());
         Category category = dto.getCategoryId() != null ? getCategoryById(dto.getCategoryId()) : expense.getCategory();
 
-        List<Approval> approvals = expense.getApprovals();
-        Approval latest = approvals != null && !approvals.isEmpty()
-                ? approvals.get(approvals.size() - 1)
-                : null;
+        Approval latest = getLatestApproval(expense);
 
         AuditLog auditLog = AuditLog.builder()
                 .entityName("expense")
@@ -180,10 +179,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         cloudinaryService.deleteInvoice(document.getImageId());
         fileDocumentRepository.delete(document);
 
-        List<Approval> approvals = expense.getApprovals();
-        Approval latest = approvals != null && !approvals.isEmpty()
-                ? approvals.get(approvals.size() - 1)
-                : null;
+        Approval latest = getLatestApproval(expense);
 
         expenseRepository.delete(expense);
         auditLogService.log(AuditLog.builder()
@@ -200,10 +196,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     public ExpenseResponse getExpenseByExpenseId(Long id) {
         Expense expense = getExpenseById(id);
 
-        List<Approval> approvals = expense.getApprovals();
-        Approval latest = approvals != null && !approvals.isEmpty()
-                ? approvals.get(approvals.size() - 1)
-                : null;
+        Approval latest = getLatestApproval(expense);
 
         return getExpenseResponseWithLatestApproval(expense, latest);
     }
@@ -214,10 +207,7 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .orElseThrow(() -> new ApiException("User is not logged in. Please log in to continue."));
         Expense expense = getExpenseById(id);
 
-        List<Approval> approvals = expense.getApprovals();
-        Approval latest = approvals != null && !approvals.isEmpty()
-                ? approvals.get(approvals.size() - 1)
-                : null;
+        Approval latest = getLatestApproval(expense);
 
         AuditLog auditLog = AuditLog.builder()
                 .entityName("expense")
@@ -236,10 +226,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         expense.getApprovals().add(approval);
         expense = expenseRepository.save(expense);
 
-        approvals = expense.getApprovals();
-        latest = approvals != null && !approvals.isEmpty()
-                ? approvals.get(approvals.size() - 1)
-                : null;
+        latest = getLatestApproval(expense);
 
         ExpenseResponse response = ExpenseResponse.builder()
                 .id(expense.getId())
@@ -264,13 +251,15 @@ public class ExpenseServiceImpl implements ExpenseService {
         auditLogService.log(auditLog);
 
         String message;
+        OrganizationMember membership = getActiveOrganizationMembership(expense.getOrganization(), user.getId());
+
         if (approvalRequest.getDecision().equalsIgnoreCase("approve")) {
-            if (UserUtils.isAdmin(user)) {
+            if (membership.getRole() == OrganizationRole.ORG_ADMIN) {
                 invoiceService.generateInvoice(expense.getUser(), expense);
                 message = "🎉 Congratulations! Your expense with ID " + expense.getId() + " has been approved by Admin.";
-            } else if (UserUtils.isFinance(user)) {
+            } else if (membership.getRole() == OrganizationRole.FINANCE) {
                 message = "✅ Your expense with ID " + expense.getId() + " has been approved by Finance. Please wait for Admin approval.";
-            } else if (UserUtils.isManager(user)) {
+            } else if (membership.getRole() == OrganizationRole.MANAGER) {
                 message = "✅ Your expense with ID " + expense.getId() + " has been approved by Manager. Please wait for Finance review.";
             } else {
                 message = "✅ Your expense with ID " + expense.getId() + " has been approved.";
@@ -325,6 +314,71 @@ public class ExpenseServiceImpl implements ExpenseService {
             }
 
         return expenseResponseList;
+    }
+
+    @Override
+    public PagedResponse<ExpenseResponse> getApprovalQueue(String title, String categoryName, String status, String level,
+                                                           LocalDate startDate, LocalDate endDate, Double minAmount, Double maxAmount,
+                                                           Long userId, Integer pageNumber, Integer pageSize, String sortBy,
+                                                           String sortOrder, Boolean export, HttpServletResponse response) {
+        User approver = authUtils.loggedInUser();
+        List<OrganizationMember> memberships = organizationMemberRepository
+                .findAllByUserIdAndStatus(approver.getId(), OrganizationMemberStatus.ACTIVE);
+
+        if (memberships.isEmpty()) {
+            return PagedResponse.<ExpenseResponse>builder()
+                    .content(List.of())
+                    .pageNumber(pageNumber)
+                    .pageSize(pageSize)
+                    .totalElements(0L)
+                    .totalPages(0)
+                    .lastPage(true)
+                    .build();
+        }
+
+        Set<Long> organizationIds = memberships.stream()
+                .map(member -> member.getOrganization().getId())
+                .collect(Collectors.toSet());
+
+        Specification<Expense> specs = Specification.where(ExpenseSpecification.hasCategory(categoryName))
+                .and(ExpenseSpecification.hasStatus(convertStatus(status)))
+                .and(ExpenseSpecification.hasLevel(convertLevel(level)))
+                .and(ExpenseSpecification.expenseDateBetween(startDate, endDate))
+                .and(ExpenseSpecification.amountBetween(minAmount, maxAmount))
+                .and(ExpenseSpecification.user(userId))
+                .and(ExpenseSpecification.hasTitle(title))
+                .and((root, query, cb) -> cb.equal(root.get("workspaceType"), ExpenseWorkspaceType.ORGANIZATION))
+                .and((root, query, cb) -> root.get("organization").get("id").in(organizationIds));
+
+        List<ExpenseResponse> responseList = expenseRepository.findAll(specs).stream()
+                .filter(expense -> canReviewExpense(approver, expense))
+                .sorted(Comparator.comparing(Expense::getExpenseDate).reversed()
+                        .thenComparing(Expense::getId, Comparator.reverseOrder()))
+                .map(expense -> getExpenseResponseWithLatestApproval(expense, getLatestApproval(expense)))
+                .toList();
+
+        if (export) {
+            try {
+                exportFilteredExpenses(responseList, response);
+                return null;
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+        }
+
+        int safePageSize = pageSize <= 0 ? 1 : pageSize;
+        int fromIndex = Math.min(pageNumber * safePageSize, responseList.size());
+        int toIndex = Math.min(fromIndex + safePageSize, responseList.size());
+        int totalPages = (int) Math.ceil((double) responseList.size() / safePageSize);
+
+        return PagedResponse.<ExpenseResponse>builder()
+                .content(responseList.subList(fromIndex, toIndex))
+                .pageNumber(pageNumber)
+                .pageSize(pageSize)
+                .totalElements((long) responseList.size())
+                .totalPages(totalPages)
+                .lastPage(toIndex >= responseList.size())
+                .build();
     }
 
     private ApprovalStatus convertStatus(String status) {
@@ -462,16 +516,16 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .status(isApproved ? ApprovalStatus.APPROVED : ApprovalStatus.REJECTED)
                 .build();
 
-        List<Approval> approvals = expense.getApprovals();
-        Approval latest = (approvals != null && !approvals.isEmpty())
-                ? approvals.get(approvals.size() - 1)
-                : null;
+        Approval latest = getLatestApproval(expense);
 
         if (latest != null && latest.getStatus() == ApprovalStatus.APPROVED && latest.getLevel() == ApprovalLevel.ADMIN) {
             throw new ApiException("Expense has already been approved by admin.");
         }
 
-        if (UserUtils.isAdmin(user)) {
+        OrganizationMember membership = getActiveOrganizationMembership(expense.getOrganization(), user.getId());
+        OrganizationRole approverRole = membership.getRole();
+
+        if (approverRole == OrganizationRole.ORG_ADMIN) {
             if (latest != null && latest.getStatus() == ApprovalStatus.REJECTED) {
                 throw new ApiException("Expense approval is already rejected.");
             } else if (latest != null && (latest.getLevel() != ApprovalLevel.FINANCE || latest.getStatus() != ApprovalStatus.APPROVED)) {
@@ -482,7 +536,7 @@ public class ExpenseServiceImpl implements ExpenseService {
             approval.setComment(isApproved
                     ? "Final review passed. Approved by admin."
                     : "Final approval denied. Expense not aligned with financial rules.");
-        } else if (UserUtils.isFinance(user)) {
+        } else if (approverRole == OrganizationRole.FINANCE) {
             if (latest != null && latest.getStatus() == ApprovalStatus.REJECTED) {
                 throw new ApiException("Expense approval is already rejected.");
             } else if (latest != null && (latest.getLevel() != ApprovalLevel.MANAGER || latest.getStatus() != ApprovalStatus.APPROVED)) {
@@ -493,7 +547,7 @@ public class ExpenseServiceImpl implements ExpenseService {
             approval.setComment(isApproved
                     ? "Financial review completed. Forwarded to admin for final approval."
                     : "Rejected by finance due to policy, accounting, or reimbursement rules.");
-        } else if (UserUtils.isManager(user)) {
+        } else if (approverRole == OrganizationRole.MANAGER) {
             if (latest != null && latest.getStatus() == ApprovalStatus.REJECTED) {
                 throw new ApiException("Expense approval is already rejected.");
             } else if (latest != null && latest.getLevel() == ApprovalLevel.MANAGER && latest.getStatus() == ApprovalStatus.APPROVED) {
@@ -562,6 +616,51 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .actionTime(LocalDateTime.now())
                 .comment("Wait for manager approval!")
                 .build();
+    }
+
+    private Approval getLatestApproval(Expense expense) {
+        List<Approval> approvals = expense.getApprovals();
+        return approvals != null && !approvals.isEmpty()
+                ? approvals.get(approvals.size() - 1)
+                : null;
+    }
+
+    private OrganizationMember getActiveOrganizationMembership(Organization organization, Long userId) {
+        if (organization == null) {
+            throw new ApiException("Organization expense requires organization context.");
+        }
+
+        OrganizationMember membership = organizationMemberRepository
+                .findByOrganizationIdAndUserId(organization.getId(), userId)
+                .orElseThrow(() -> new ApiException("User is not a member of the selected organization."));
+
+        if (membership.getStatus() != OrganizationMemberStatus.ACTIVE) {
+            throw new ApiException("Organization membership is not active.");
+        }
+
+        return membership;
+    }
+
+    private boolean canReviewExpense(User approver, Expense expense) {
+        Approval latest = getLatestApproval(expense);
+        if (latest == null || expense.getWorkspaceType() != ExpenseWorkspaceType.ORGANIZATION || expense.getOrganization() == null) {
+            return false;
+        }
+
+        OrganizationMember membership = organizationMemberRepository
+                .findByOrganizationIdAndUserId(expense.getOrganization().getId(), approver.getId())
+                .orElse(null);
+
+        if (membership == null || membership.getStatus() != OrganizationMemberStatus.ACTIVE) {
+            return false;
+        }
+
+        return switch (membership.getRole()) {
+            case MANAGER -> latest.getLevel() == ApprovalLevel.MANAGER && latest.getStatus() == ApprovalStatus.PENDING;
+            case FINANCE -> latest.getLevel() == ApprovalLevel.MANAGER && latest.getStatus() == ApprovalStatus.APPROVED;
+            case ORG_ADMIN -> latest.getLevel() == ApprovalLevel.FINANCE && latest.getStatus() == ApprovalStatus.APPROVED;
+            default -> false;
+        };
     }
 }
 

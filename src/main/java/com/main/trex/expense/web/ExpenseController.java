@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -57,7 +56,6 @@ public class ExpenseController {
                 pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER') or hasRole('FINANCE')")
     @GetMapping("/request-list")
     public ResponseEntity<PagedResponse<ExpenseResponse>> getAllExpenses(
             @RequestParam(name = "userId", required = false) Long userId,
@@ -76,7 +74,7 @@ public class ExpenseController {
             @RequestParam(name="export", required = false, defaultValue = "false") Boolean export,
             HttpServletResponse response
     ) {
-        return ResponseEntity.ok(expenseService.getFilteredExpenses(title, categoryName, status, level, startDate, endDate, minAmount, maxAmount,
+        return ResponseEntity.ok(expenseService.getApprovalQueue(title, categoryName, status, level, startDate, endDate, minAmount, maxAmount,
                 userId,
                 pageNumber, pageSize, sortBy, sortOrder, export, response));
     }
@@ -99,7 +97,6 @@ public class ExpenseController {
         return ResponseEntity.ok(expenseService.updateExpense(request));
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER') or hasRole('FINANCE')")
     @PutMapping("/approve/{id}")
     public ResponseEntity<ExpenseResponse> approveExpense(@Valid @RequestBody ApprovalRequest request,
                                                           @PathVariable Long id) {

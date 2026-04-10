@@ -33,6 +33,11 @@ public class AppConfig {
         return args -> {
             synchronizeRoleConstraint(jdbcTemplate);
 
+            Role roleUser = roleRepository.findByRoleName(Roles.ROLE_USER)
+                    .orElseGet(() -> {
+                        Role newUserRole = new Role(Roles.ROLE_USER);
+                        return roleRepository.save(newUserRole);
+                    });
             Role roleAdmin = roleRepository.findByRoleName(Roles.ROLE_ADMIN)
                     .orElseGet(() -> {
                         Role newUserRole = new Role(Roles.ROLE_ADMIN);
@@ -54,10 +59,10 @@ public class AppConfig {
                         return roleRepository.save(newUserRole);
                     });
 
-            Set<Role> adminRoles = Set.of(roleAdmin, roleFinance, roleManager, roleEmployee);
-            Set<Role> financeRoles = Set.of(roleFinance, roleEmployee);
-            Set<Role> managerRoles = Set.of(roleManager, roleEmployee);
-            Set<Role> employeeRoles = Set.of(roleEmployee);
+            Set<Role> adminRoles = Set.of(roleUser, roleAdmin, roleFinance, roleManager, roleEmployee);
+            Set<Role> financeRoles = Set.of(roleUser, roleFinance, roleEmployee);
+            Set<Role> managerRoles = Set.of(roleUser, roleManager, roleEmployee);
+            Set<Role> employeeRoles = Set.of(roleUser, roleEmployee);
 
             if (!userRepository.existsByEmail("admin@gmail.com")) {
                 User admin = new User("admin", "admin@gmail.com", passwordEncoder.encode("admin"));

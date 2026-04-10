@@ -7,5 +7,4 @@ import lombok.Data;
 public class CreateOrganizationRequest {
     @NotBlank(message = "Organization name is required")
     private String name;
-    private String description;
 }

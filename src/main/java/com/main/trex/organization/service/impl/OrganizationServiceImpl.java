@@ -55,7 +55,6 @@ public class OrganizationServiceImpl implements OrganizationService {
         User creator = getUserByEmail(creatorEmail);
         Organization organization = new Organization();
         organization.setName(request.getName().trim());
-        organization.setDescription(request.getDescription());
         organization.setCreatedBy(creator);
         organization.setCreatedAt(LocalDateTime.now());
         organization.setActive(true);

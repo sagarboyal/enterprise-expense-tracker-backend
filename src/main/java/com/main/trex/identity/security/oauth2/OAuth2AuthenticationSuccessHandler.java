@@ -73,8 +73,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     }
 
     private User createOAuthUser(String email, String name, String providerId) {
-        Role employeeRole = roleRepository.findByRoleName(Roles.ROLE_EMPLOYEE)
-                .orElseThrow(() -> new ResourceNotFoundException("Default employee role not found."));
+        Role userRole = roleRepository.findByRoleName(Roles.ROLE_USER)
+                .orElseThrow(() -> new ResourceNotFoundException("Default user role not found."));
 
         User user = new User();
         user.setEmail(email);
@@ -82,7 +82,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
         user.setProvider(AuthProvider.GOOGLE);
         user.setProviderId(providerId);
-        user.setRoles(Set.of(employeeRole));
+        user.setRoles(Set.of(userRole));
         user = userRepository.save(user);
 
         notificationService.saveNotification(

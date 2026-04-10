@@ -91,10 +91,10 @@ public class AuthController {
         user.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
         user.setProvider(AuthProvider.LOCAL);
 
-        Role employeeRole = roleRepository.findByRoleName(Roles.ROLE_EMPLOYEE)
-                .orElseThrow(() -> new ResourceNotFoundException("Error: Role does not exist!"));
+        Role userRole = roleRepository.findByRoleName(Roles.ROLE_USER)
+                .orElseThrow(() -> new ResourceNotFoundException("Error: Default role does not exist!"));
 
-        user.setRoles(Set.of(employeeRole));
+        user.setRoles(Set.of(userRole));
 
         userRepository.save(user);
 
