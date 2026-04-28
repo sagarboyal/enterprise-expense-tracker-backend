@@ -5,6 +5,7 @@ import com.main.trex.shared.exception.ResourceAlreadyExistsException;
 import com.main.trex.shared.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -67,6 +68,26 @@ public class GlobalExceptionHandler {
         response.put("messages", errors);
 
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        logger.warn("Database constraint violation:", ex);
+
+        String message = "Data violates a database constraint.";
+        String exceptionMessage = ex.getMostSpecificCause().getMessage();
+
+        if (exceptionMessage != null && exceptionMessage.contains("uk_users_email_user_type")) {
+            message = "User already exists with this email and account type.";
+        }
+
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME));
+        error.put("status", HttpStatus.CONFLICT.value());
+        error.put("error", "Conflict");
+        error.put("message", message);
+
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(Exception.class)

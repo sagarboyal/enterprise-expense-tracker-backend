@@ -1,22 +1,16 @@
 package com.main.trex.identity.web;
 
-import com.main.trex.notification.entity.Notification;
-import com.main.trex.identity.entity.AuthProvider;
-import com.main.trex.identity.entity.Role;
-import com.main.trex.identity.entity.Roles;
+import com.main.trex.identity.payload.request.UserRequest;
 import com.main.trex.identity.entity.User;
-import com.main.trex.shared.exception.ResourceNotFoundException;
 import com.main.trex.identity.jwt.JwtUtils;
 import com.main.trex.identity.payload.request.SignInRequest;
-import com.main.trex.identity.payload.request.SignUpRequest;
 import com.main.trex.shared.payload.response.MessageResponse;
 import com.main.trex.identity.payload.response.SignInResponse;
 import com.main.trex.identity.payload.response.UserInfoResponse;
-import com.main.trex.identity.repository.RoleRepository;
-import com.main.trex.identity.repository.UserRepository;
 import com.main.trex.notification.service.NotificationService;
 import com.main.trex.identity.service.UserService;
 import com.main.trex.identity.util.AuthUtils;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,13 +22,11 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 
@@ -45,9 +37,6 @@ public class AuthController {
 
     private final JwtUtils jwtUtils;
     private final AuthenticationManager authenticationManager;
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder;
     private final AuthUtils authUtils;
     private final UserService userService;
     private final NotificationService notificationService;
@@ -80,29 +69,8 @@ public class AuthController {
     }
 
     @PostMapping("/public/sign-up")
-    public ResponseEntity<?> registerUser(@RequestBody SignUpRequest signUpRequest) {
-        if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
-        }
-
-        User user = new User();
-        user.setFullName(signUpRequest.getFullName());
-        user.setEmail(signUpRequest.getEmail());
-        user.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
-        user.setProvider(AuthProvider.LOCAL);
-
-        Role userRole = roleRepository.findByRoleName(Roles.ROLE_USER)
-                .orElseThrow(() -> new ResourceNotFoundException("Error: Default role does not exist!"));
-
-        user.setRoles(Set.of(userRole));
-
-        userRepository.save(user);
-
-        notificationService.saveNotification(
-                new Notification("Your account has been successfully created. Welcome aboard!"),
-                user.getId()
-        );
-
+    public ResponseEntity<?> registerUser(@Valid @RequestBody UserRequest request) {
+        userService.createUser(request);
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
 

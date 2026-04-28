@@ -18,7 +18,13 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "users")
+@Table(
+        name = "users",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_users_email_user_type",
+                columnNames = {"email", "user_type"}
+        )
+)
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,7 +33,7 @@ public class User {
     @Column(nullable = false)
     private String fullName;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String email;
 
     private String password;
@@ -37,7 +43,7 @@ public class User {
     private AuthProvider provider = AuthProvider.EMAIL;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "user_type", nullable = false)
     private UserType userType = UserType.PERSONAL;
 
     @Column(nullable = false)
@@ -87,5 +93,4 @@ public class User {
         this.password = password;
     }
 }
-
 
