@@ -1,7 +1,7 @@
 package com.main.trex.organization.entity;
 
 import com.main.trex.expense.entity.Expense;
-import com.main.trex.identity.entity.User;
+import com.main.trex.identity.entity.BusinessUser;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -42,7 +42,7 @@ public class Organization {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
-    private User createdBy;
+    private BusinessUser createdBy;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

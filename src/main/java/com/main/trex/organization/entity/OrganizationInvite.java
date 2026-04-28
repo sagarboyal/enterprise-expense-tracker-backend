@@ -1,6 +1,6 @@
 package com.main.trex.organization.entity;
 
-import com.main.trex.identity.entity.User;
+import com.main.trex.identity.entity.BusinessUser;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -54,7 +54,7 @@ public class OrganizationInvite {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "invited_by", nullable = false)
-    private User invitedBy;
+    private BusinessUser invitedBy;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
