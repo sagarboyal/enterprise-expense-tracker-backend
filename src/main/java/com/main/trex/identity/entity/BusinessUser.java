@@ -55,8 +55,8 @@ public class BusinessUser {
     @OneToMany(mappedBy = "invitedBy")
     private List<OrganizationInvite> organizationInvitesSent = new ArrayList<>();
 
-    @OneToMany(mappedBy = "createdBy")
-    private List<Organization> organizationsCreated = new ArrayList<>();
+    @OneToOne(mappedBy = "createdBy")
+    private Organization organization;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

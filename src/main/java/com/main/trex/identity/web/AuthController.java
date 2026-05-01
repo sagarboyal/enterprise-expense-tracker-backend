@@ -4,10 +4,11 @@ import com.main.trex.identity.payload.request.UserRequest;
 import com.main.trex.identity.entity.User;
 import com.main.trex.identity.jwt.JwtUtils;
 import com.main.trex.identity.payload.request.SignInRequest;
+import com.main.trex.identity.repository.UserRepository;
+import com.main.trex.shared.exception.ApiException;
 import com.main.trex.shared.payload.response.MessageResponse;
 import com.main.trex.identity.payload.response.SignInResponse;
 import com.main.trex.identity.payload.response.UserInfoResponse;
-import com.main.trex.notification.service.NotificationService;
 import com.main.trex.identity.service.UserService;
 import com.main.trex.identity.util.AuthUtils;
 import jakarta.validation.Valid;
@@ -24,7 +25,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,33 +39,36 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final AuthUtils authUtils;
     private final UserService userService;
-    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     @PostMapping("/public/sign-in")
-    public ResponseEntity<?> authenticateUser(@RequestBody SignInRequest loginRequest) {
+    public ResponseEntity<?> authenticateUser(@RequestBody SignInRequest request) {
         Authentication authentication;
         try {
-            authentication = authenticationManager
-                    .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
-        } catch (AuthenticationException exception) {
-            Map<String, Object> map = new HashMap<>();
-            map.put("message", "Bad credentials");
-            map.put("error", exception.getMessage());
-            map.put("status", false);
-            return new ResponseEntity<Object>(map, HttpStatus.NOT_FOUND);
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
+        } catch (AuthenticationException e) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of(
+                            "message", "Bad credentials",
+                            "error", e.getMessage(),
+                            "status", false
+                    ));
         }
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ApiException("User not found"));
+        String token = jwtUtils.generateToken(user);
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        SignInResponse response = SignInResponse.builder()
+                .activeContext(user.getActiveContext())
+                .token(token)
+                .build();
 
-        String jwtToken = jwtUtils.generateTokenFromUsername(userDetails);
-
-
-        return ResponseEntity.ok(SignInResponse.builder()
-                .username(userDetails.getUsername())
-                .token(jwtToken)
-                .build());
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/public/sign-up")

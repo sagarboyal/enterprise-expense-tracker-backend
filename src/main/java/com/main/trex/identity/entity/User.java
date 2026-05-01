@@ -21,11 +21,12 @@ import java.util.Set;
 @Table(
         name = "users",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_users_email_user_type",
-                columnNames = {"email", "user_type"}
+                name = "uk_users_email",
+                columnNames = {"email"}
         )
 )
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,7 +34,7 @@ public class User {
     @Column(nullable = false)
     private String fullName;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String email;
 
     private String password;
@@ -45,6 +46,13 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(name = "user_type", nullable = false)
     private UserType userType = UserType.PERSONAL;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "active_context", nullable = false)
+    private UserType activeContext = UserType.PERSONAL;
+
+    @Column(nullable = false)
+    private Boolean isEmailVerified = false;
 
     @Column(nullable = false)
     private boolean enabled = true;
@@ -92,5 +100,24 @@ public class User {
         this.email = email;
         this.password = password;
     }
-}
 
+    public boolean hasPersonalProfile() {
+        return this.personalProfile != null;
+    }
+
+    public boolean hasBusinessProfile() {
+        return this.businessProfile != null;
+    }
+
+    public boolean canSwitchContext() {
+        return hasPersonalProfile() && hasBusinessProfile();
+    }
+
+    public boolean isBusinessContext() {
+        return this.activeContext == UserType.BUSINESS;
+    }
+
+    public boolean isPersonalContext() {
+        return this.activeContext == UserType.PERSONAL;
+    }
+}

@@ -15,8 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.Set;
 
 @Service
@@ -31,28 +31,45 @@ public class UserRegistrationService {
     private final AuditLogService auditLogService;
     private final ObjectMapperUtils mapperUtils;
 
+    @Transactional
     public UserResponse createPersonalUser(UserRequest request) {
-        Role defaultRole = roleRepository.findByRoleName(Roles.ROLE_EMPLOYEE)
-                .orElseThrow(() -> new ApiException("Invalid Role"));
 
+        // 1. check duplicate email
+        if (userRepository.existsByEmail(request.getEmail()))
+            throw new ApiException("Email already registered");
+
+        // 2. fetch default role for personal users
+        Role defaultRole = roleRepository.findByRoleName(Roles.ROLE_USER)
+                .orElseThrow(() -> new ApiException("Default role not found"));
+
+        // 3. build User
         User user = modelMapper.map(request, User.class);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setProvider(AuthProvider.EMAIL);
+        user.setUserType(UserType.PERSONAL);
+        user.setActiveContext(UserType.PERSONAL);
+        user.setIsEmailVerified(true);  // personal users skip email verification
+        user.setEnabled(true);
         user.setRoles(Set.of(defaultRole));
 
+        // 4. build PersonalUser profile and link BEFORE save
+        // CascadeType.ALL on personalProfile will persist it automatically
         PersonalUser profile = new PersonalUser();
-        user.setPersonalProfile(profile);
         profile.setUser(user);
+        user.setPersonalProfile(profile);
 
+        // 5. save — cascade saves PersonalUser too
         user = userRepository.save(user);
 
+        // 6. build response
         UserResponse response = UserResponse.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                .role(Roles.ROLE_USER.toString())
+                .role(Roles.ROLE_USER.name())
                 .build();
 
+        // 7. audit log
         auditLogService.log(AuditLog.builder()
                 .entityName("user")
                 .entityId(user.getId())
@@ -62,10 +79,12 @@ public class UserRegistrationService {
                 .newValue(mapperUtils.convertToJson(response))
                 .build());
 
+        // 8. welcome notification
         notificationService.saveNotification(
                 new Notification("Your account has been successfully created. Welcome aboard!"),
                 user.getId()
         );
+
         return response;
     }
 }
