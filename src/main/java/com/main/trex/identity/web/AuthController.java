@@ -11,6 +11,7 @@ import com.main.trex.identity.payload.response.SignInResponse;
 import com.main.trex.identity.payload.response.UserInfoResponse;
 import com.main.trex.identity.service.UserService;
 import com.main.trex.identity.util.AuthUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.List;
 import java.util.Map;
@@ -78,8 +80,13 @@ public class AuthController {
     }
 
     @GetMapping("/public/oauth2/google")
-    public ResponseEntity<Map<String, String>> getGoogleLoginUrl() {
-        return ResponseEntity.ok(Map.of("authorizationUrl", "/oauth2/authorization/google"));
+    public ResponseEntity<Map<String, String>> getGoogleLoginUrl(HttpServletRequest request) {
+        String authorizationUrl = ServletUriComponentsBuilder.fromContextPath(request)
+                .path("/oauth2/authorization/google")
+                .build()
+                .toUriString();
+
+        return ResponseEntity.ok(Map.of("authorizationUrl", authorizationUrl));
     }
 
     @GetMapping("/user")

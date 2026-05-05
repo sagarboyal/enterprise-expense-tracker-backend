@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -86,5 +87,64 @@ public class UserRegistrationService {
         );
 
         return response;
+    }
+
+    @Transactional
+    public User findOrCreateOAuthUser(String email, String name, String providerId) {
+        return userRepository.findByEmail(email)
+                .map(existingUser -> syncOAuthUser(existingUser, name))
+                .orElseGet(() -> createOAuthUser(email, name, providerId));
+    }
+
+    private User createOAuthUser(String email, String name, String providerId) {
+        Role userRole = roleRepository.findByRoleName(Roles.ROLE_USER)
+                .orElseThrow(() -> new ApiException("Default user role not found."));
+
+        User user = new User();
+        user.setEmail(email);
+        user.setFullName(name != null && !name.isBlank() ? name : email);
+        user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        user.setProvider(AuthProvider.GOOGLE);
+        user.setUserType(UserType.PERSONAL);
+        user.setActiveContext(UserType.PERSONAL);
+        user.setIsEmailVerified(true);
+        user.setEnabled(true);
+        user.setRoles(Set.of(userRole));
+
+        PersonalUser profile = new PersonalUser();
+        profile.setUser(user);
+        profile.setGoogleId(providerId);
+        user.setPersonalProfile(profile);
+
+        user = userRepository.save(user);
+
+        auditLogService.log(AuditLog.builder()
+                .entityName("user")
+                .entityId(user.getId())
+                .action("CREATED_OAUTH")
+                .performedBy(user.getEmail())
+                .oldValue("")
+                .newValue(mapperUtils.convertToJson(user))
+                .build());
+
+        notificationService.saveNotification(
+                new Notification("Your Google account has been linked and your personal workspace is ready."),
+                user.getId()
+        );
+
+        return user;
+    }
+
+    private User syncOAuthUser(User user, String name) {
+        if (user.getProvider() == AuthProvider.EMAIL) {
+            throw new ApiException(
+                    "This email is already registered with a password. Please log in with email and password. " +
+                            "You can link your Google account from account settings."
+            );
+        }
+        if (name != null && !name.isBlank()) {
+            user.setFullName(name);
+        }
+        return userRepository.save(user);
     }
 }
