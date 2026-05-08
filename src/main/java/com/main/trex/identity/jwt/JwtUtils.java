@@ -1,5 +1,8 @@
 package com.main.trex.identity.jwt;
 
+import com.main.trex.identity.entity.BusinessUser;
+import com.main.trex.identity.entity.User;
+import com.main.trex.identity.entity.UserType;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -18,6 +21,7 @@ import java.util.stream.Collectors;
 
 @Component
 public class JwtUtils {
+
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
     @Value("${spring.app.jwtSecret}")
@@ -30,16 +34,21 @@ public class JwtUtils {
         String bearerToken = request.getHeader("Authorization");
         logger.debug("Authorization Header: {}", bearerToken);
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7); // Remove Bearer prefix
+            return bearerToken.substring(7);
         }
         return null;
     }
 
+    // ----------------------------------------------------------------
+    // Generate token from UserDetails only (fallback / simple use)
+    // keeps backward compatibility with your existing code
+    // ----------------------------------------------------------------
     public String generateTokenFromUsername(UserDetails userDetails) {
         String username = userDetails.getUsername();
         String roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
+
         return Jwts.builder()
                 .subject(username)
                 .claim("roles", roles)
@@ -49,20 +58,63 @@ public class JwtUtils {
                 .compact();
     }
 
-    public String getUserNameFromJwtToken(String token) {
-        return Jwts.parser()
-                .verifyWith((SecretKey) key())
-                .build().parseSignedClaims(token)
-                .getPayload().getSubject();
+    public String generateToken(User user) {
+        JwtBuilder builder = Jwts.builder()
+                .subject(user.getEmail())
+                .claim("userId", user.getId())
+                .claim("userType", user.getUserType().name())
+                .claim("activeContext", user.getActiveContext().name())
+                .claim("isEmailVerified", user.getIsEmailVerified());
+
+        if (user.getActiveContext() == UserType.BUSINESS
+                && user.getBusinessProfile() != null) {
+
+            BusinessUser business = user.getBusinessProfile();
+            builder.claim("orgId", business.getOrganization().getId());
+            builder.claim("role", business.getUser().getRoles());
+
+        } else {
+            builder.claim("orgId", null);
+            builder.claim("role", "ROLE_USER");
+        }
+
+        return builder
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .signWith(key())
+                .compact();
     }
 
-    private Key key() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+    public String getUserNameFromJwtToken(String token) {
+        return getClaims(token).getSubject();
+    }
+
+    public Long extractUserId(String token) {
+        return getClaims(token).get("userId", Long.class);
+    }
+
+    public UserType extractUserType(String token) {
+        return UserType.valueOf(getClaims(token).get("userType", String.class));
+    }
+
+    public UserType extractActiveContext(String token) {
+        return UserType.valueOf(getClaims(token).get("activeContext", String.class));
+    }
+
+    public Long extractOrgId(String token) {
+        return getClaims(token).get("orgId", Long.class); // null for personal context
+    }
+
+    public String extractRole(String token) {
+        return getClaims(token).get("role", String.class);
+    }
+
+    public Boolean extractIsEmailVerified(String token) {
+        return getClaims(token).get("isEmailVerified", Boolean.class);
     }
 
     public boolean validateJwtToken(String authToken) {
         try {
-            System.out.println("Validate");
             Jwts.parser().verifyWith((SecretKey) key()).build().parseSignedClaims(authToken);
             return true;
         } catch (MalformedJwtException e) {
@@ -76,6 +128,16 @@ public class JwtUtils {
         }
         return false;
     }
+
+    private Claims getClaims(String token) {
+        return Jwts.parser()
+                .verifyWith((SecretKey) key())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+
+    private Key key() {
+        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+    }
 }
-
-

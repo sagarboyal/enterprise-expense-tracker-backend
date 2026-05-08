@@ -1,13 +1,14 @@
 package com.main.trex.identity.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.main.trex.expense.entity.Expense;
 import com.main.trex.notification.entity.Notification;
-import com.main.trex.organization.entity.Organization;
-import com.main.trex.organization.entity.OrganizationInvite;
-import com.main.trex.organization.entity.OrganizationMember;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -18,19 +19,61 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "users")
+@Table(
+        name = "users",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_users_email",
+                columnNames = {"email"}
+        )
+)
+@Builder
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private String fullName;
+
+    @Column(nullable = false, unique = true)
     private String email;
+
     private String password;
 
     @Enumerated(EnumType.STRING)
-    private AuthProvider provider = AuthProvider.LOCAL;
+    @Column(nullable = false)
+    private AuthProvider provider = AuthProvider.EMAIL;
 
-    private String providerId;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_type", nullable = false)
+    private UserType userType = UserType.PERSONAL;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "active_context", nullable = false)
+    private UserType activeContext = UserType.PERSONAL;
+
+    @Column(nullable = false)
+    private Boolean isEmailVerified = false;
+
+    @Column(nullable = false)
+    private boolean enabled = true;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+
+    @JsonManagedReference("user-personalProfile")
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private PersonalUser personalProfile;
+
+    @JsonManagedReference("user-businessProfile")
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private BusinessUser businessProfile;
 
     @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
@@ -56,20 +99,29 @@ public class User {
     )
     private List<Notification> notifications = new ArrayList<>();
 
-    @OneToMany(mappedBy = "user", orphanRemoval = true)
-    private List<OrganizationMember> organizationMemberships = new ArrayList<>();
-
-    @OneToMany(mappedBy = "invitedBy", orphanRemoval = true)
-    private List<OrganizationInvite> organizationInvitesSent = new ArrayList<>();
-
-    @OneToMany(mappedBy = "createdBy", orphanRemoval = true)
-    private List<Organization> organizationsCreated = new ArrayList<>();
-
     public User(String fullName, String email, String password) {
         this.fullName = fullName;
         this.email = email;
         this.password = password;
     }
+
+    public boolean hasPersonalProfile() {
+        return this.personalProfile != null;
+    }
+
+    public boolean hasBusinessProfile() {
+        return this.businessProfile != null;
+    }
+
+    public boolean canSwitchContext() {
+        return hasPersonalProfile() && hasBusinessProfile();
+    }
+
+    public boolean isBusinessContext() {
+        return this.activeContext == UserType.BUSINESS;
+    }
+
+    public boolean isPersonalContext() {
+        return this.activeContext == UserType.PERSONAL;
+    }
 }
-
-

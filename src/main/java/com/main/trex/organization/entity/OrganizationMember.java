@@ -1,6 +1,6 @@
 package com.main.trex.organization.entity;
 
-import com.main.trex.identity.entity.User;
+import com.main.trex.identity.entity.BusinessUser;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -27,7 +27,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "organization_members",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"organization_id", "user_id"})
+        uniqueConstraints = @UniqueConstraint(columnNames = {"organization_id", "business_user_id"})
 )
 public class OrganizationMember {
 
@@ -40,8 +40,8 @@ public class OrganizationMember {
     private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @JoinColumn(name = "business_user_id", nullable = false)
+    private BusinessUser businessUser;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
