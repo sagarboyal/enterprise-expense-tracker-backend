@@ -1,22 +1,11 @@
 package com.main.trex.identity.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.main.trex.organization.entity.Organization;
 import com.main.trex.organization.entity.OrganizationInvite;
 import com.main.trex.organization.entity.OrganizationMember;
+import jakarta.persistence.*;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -30,12 +19,14 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name = "business_users")
+@Builder
 public class BusinessUser {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonBackReference("user-businessProfile")
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
@@ -55,7 +46,7 @@ public class BusinessUser {
     @OneToMany(mappedBy = "invitedBy")
     private List<OrganizationInvite> organizationInvitesSent = new ArrayList<>();
 
-    @OneToOne(mappedBy = "createdBy")
+    @OneToOne(mappedBy = "createdBy", cascade = CascadeType.ALL)
     private Organization organization;
 
     @CreationTimestamp

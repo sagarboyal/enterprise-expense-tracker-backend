@@ -1,5 +1,6 @@
 package com.main.trex.identity.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.main.trex.expense.entity.Expense;
 import com.main.trex.notification.entity.Notification;
 import jakarta.persistence.*;
@@ -25,6 +26,7 @@ import java.util.Set;
                 columnNames = {"email"}
         )
 )
+@Builder
 public class User {
 
     @Id
@@ -65,9 +67,11 @@ public class User {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @JsonManagedReference("user-personalProfile")
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private PersonalUser personalProfile;
 
+    @JsonManagedReference("user-businessProfile")
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private BusinessUser businessProfile;
 

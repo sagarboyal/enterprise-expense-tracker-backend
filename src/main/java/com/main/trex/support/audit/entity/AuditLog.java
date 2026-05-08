@@ -26,6 +26,7 @@ public class AuditLog {
     private String action;
     private String performedBy;
     private LocalDateTime timestamp;
+    private String ipAddress;
 
     @Column(columnDefinition = "TEXT")
     private String oldValue;

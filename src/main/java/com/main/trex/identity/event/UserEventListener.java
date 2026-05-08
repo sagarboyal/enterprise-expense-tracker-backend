@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import java.util.Map;
+
 @Component
 @RequiredArgsConstructor
 public class UserEventListener {
@@ -29,8 +31,9 @@ public class UserEventListener {
                 .entityId(user.getId())
                 .action("CREATED")
                 .performedBy(user.getEmail())
+                .ipAddress(event.clientIp())
                 .oldValue(null)
-                .newValue(mapperUtils.convertToJson(user))
+                .newValue(mapperUtils.convertToJson(toSnapshot(user)))
                 .build());
         notificationService.saveNotification(
                 new Notification(event.notificationMessage()),
@@ -47,12 +50,28 @@ public class UserEventListener {
                 .entityId(user.getId())
                 .action("CREATED_OAUTH")
                 .performedBy(user.getEmail())
+                .ipAddress(event.clientIp())
                 .oldValue(null)
-                .newValue(mapperUtils.convertToJson(user))
+                .newValue(mapperUtils.convertToJson(toSnapshot(user)))
                 .build());
         notificationService.saveNotification(
                 new Notification(event.notificationMessage()),
                 user.getId()
+        );
+    }
+
+    /**
+     * Safe flat snapshot of User — avoids infinite recursion from
+     * bidirectional JPA relationships when serializing to JSON.
+     */
+    private Map<String, Object> toSnapshot(User user) {
+        return Map.of(
+                "id",         user.getId(),
+                "email",      user.getEmail(),
+                "fullName",   user.getFullName(),
+                "userType",   user.getUserType(),
+                "provider",   user.getProvider(),
+                "enabled",    user.isEnabled()
         );
     }
 }
