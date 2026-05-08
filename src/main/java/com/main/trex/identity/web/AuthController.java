@@ -1,5 +1,6 @@
 package com.main.trex.identity.web;
 
+import com.main.trex.identity.payload.request.BusinessUserRequest;
 import com.main.trex.identity.payload.request.UserRequest;
 import com.main.trex.identity.entity.User;
 import com.main.trex.identity.jwt.JwtUtils;
@@ -76,6 +77,12 @@ public class AuthController {
     @PostMapping("/public/sign-up")
     public ResponseEntity<?> registerUser(@Valid @RequestBody UserRequest request) {
         userService.createUser(request);
+        return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+    }
+
+    @PostMapping("/business/sign-up")
+    public ResponseEntity<?> registerBusinessUser(@Valid @RequestBody BusinessUserRequest request) {
+        userService.createBusinessUser(request);
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
 

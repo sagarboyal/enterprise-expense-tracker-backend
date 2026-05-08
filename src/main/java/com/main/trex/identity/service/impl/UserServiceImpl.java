@@ -1,5 +1,6 @@
 package com.main.trex.identity.service.impl;
 
+import com.main.trex.identity.payload.request.BusinessUserRequest;
 import com.main.trex.identity.payload.request.RoleUpdateRequest;
 import com.main.trex.identity.payload.request.UserRequest;
 import com.main.trex.identity.payload.request.UserUpdateRequest;
@@ -23,6 +24,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse createUser(UserRequest request) {
         return userRegistrationService.createPersonalUser(request);
+    }
+
+    @Override
+    public void createBusinessUser(BusinessUserRequest request) {
+        userRegistrationService.createBusinessUser(request);
     }
 
     @Override
